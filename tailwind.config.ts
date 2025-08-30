@@ -18,19 +18,43 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				'playfair': ['Playfair Display', 'serif'],
+				'inter': ['Inter', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
+				
+				/* Couleurs spirituelles */
+				'sky-blue': {
+					DEFAULT: 'hsl(var(--sky-blue))',
+					deep: 'hsl(var(--sky-blue-deep))',
+					dark: 'hsl(var(--sky-blue-dark))'
+				},
+				'life-green': {
+					DEFAULT: 'hsl(var(--life-green))',
+					deep: 'hsl(var(--life-green-deep))',
+					dark: 'hsl(var(--life-green-dark))'
+				},
+				'divine-gold': {
+					DEFAULT: 'hsl(var(--divine-gold))',
+					deep: 'hsl(var(--divine-gold-deep))'
+				},
+				'sacred-purple': 'hsl(var(--sacred-purple))',
+				
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					glow: 'hsl(var(--primary-glow))'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
-					foreground: 'hsl(var(--secondary-foreground))'
+					foreground: 'hsl(var(--secondary-foreground))',
+					light: 'hsl(var(--secondary-light))'
 				},
 				destructive: {
 					DEFAULT: 'hsl(var(--destructive))',
@@ -42,7 +66,8 @@ export default {
 				},
 				accent: {
 					DEFAULT: 'hsl(var(--accent))',
-					foreground: 'hsl(var(--accent-foreground))'
+					foreground: 'hsl(var(--accent-foreground))',
+					light: 'hsl(var(--accent-light))'
 				},
 				popover: {
 					DEFAULT: 'hsl(var(--popover))',
@@ -50,7 +75,8 @@ export default {
 				},
 				card: {
 					DEFAULT: 'hsl(var(--card))',
-					foreground: 'hsl(var(--card-foreground))'
+					foreground: 'hsl(var(--card-foreground))',
+					soft: 'hsl(var(--card-soft))'
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',

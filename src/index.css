@@ -1,42 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* Système de design spirituel pour Voie, Vérité, Vie (3V)
+Couleurs apaisantes : bleu ciel (paix), vert (vie), blanc (pureté)
+Toutes les couleurs DOIVENT être en HSL.
 */
 
 @layer base {
   :root {
+    /* Couleurs spirituelles principales */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
+    --foreground: 221 39% 11%;
+    
+    /* Bleu ciel - Paix spirituelle */
+    --sky-blue: 201 94% 87%;
+    --sky-blue-deep: 201 84% 65%;
+    --sky-blue-dark: 201 74% 45%;
+    
+    /* Vert - Vie et croissance */
+    --life-green: 152 57% 75%;
+    --life-green-deep: 152 67% 55%;
+    --life-green-dark: 152 77% 35%;
+    
+    /* Blanc pur - Pureté */
+    --pure-white: 0 0% 100%;
+    --soft-white: 210 20% 98%;
+    --gentle-white: 210 10% 95%;
+    
+    /* Couleurs spirituelles complémentaires */
+    --divine-gold: 43 84% 85%;
+    --divine-gold-deep: 43 94% 65%;
+    --sacred-purple: 269 43% 85%;
+    
+    /* Système de couleurs sémantiques */
+    --primary: 201 84% 65%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 201 94% 87%;
+    
+    --secondary: 152 67% 55%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-light: 152 57% 75%;
+    
+    --accent: 43 94% 65%;
+    --accent-foreground: 221 39% 11%;
+    --accent-light: 43 84% 85%;
+    
+    /* Interface */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
+    --card-foreground: 221 39% 11%;
+    --card-soft: 210 20% 98%;
+    
+    --muted: 210 10% 95%;
+    --muted-foreground: 221 15% 45%;
+    
+    --border: 210 20% 90%;
+    --input: 210 20% 95%;
+    --ring: 201 84% 65%;
+    
+    /* Gradients spirituels */
+    --gradient-heaven: linear-gradient(135deg, hsl(201 94% 87%), hsl(152 57% 75%));
+    --gradient-divine: linear-gradient(180deg, hsl(0 0% 100%), hsl(201 94% 87%));
+    --gradient-peace: linear-gradient(45deg, hsl(201 84% 65%), hsl(152 67% 55%));
+    --gradient-pure: linear-gradient(90deg, hsl(210 20% 98%), hsl(0 0% 100%));
+    
+    /* Ombres spirituelles */
+    --shadow-divine: 0 10px 30px -10px hsl(201 84% 65% / 0.3);
+    --shadow-gentle: 0 4px 20px -8px hsl(201 84% 65% / 0.2);
+    --shadow-pure: 0 2px 10px -4px hsl(221 39% 11% / 0.1);
+    
+    /* Animations et transitions */
+    --transition-divine: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    --transition-gentle: all 0.3s ease-out;
+    
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +139,145 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-inter;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-playfair;
+  }
+}
+
+@layer components {
+  /* Animations spirituelles */
+  .fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+  }
+  
+  .fade-in-up {
+    animation: fadeInUp 0.8s ease-out forwards;
+  }
+  
+  .float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .divine-glow {
+    box-shadow: var(--shadow-divine);
+    transition: var(--transition-divine);
+  }
+  
+  .divine-glow:hover {
+    box-shadow: 0 15px 40px -15px hsl(201 84% 65% / 0.4);
+    transform: translateY(-2px);
+  }
+  
+  /* Composants spirituels */
+  .spiritual-card {
+    @apply bg-card border border-border/50 rounded-lg p-6;
+    background: var(--gradient-pure);
+    box-shadow: var(--shadow-gentle);
+    transition: var(--transition-gentle);
+  }
+  
+  .spiritual-card:hover {
+    box-shadow: var(--shadow-divine);
+    transform: translateY(-4px);
+  }
+  
+  .hero-section {
+    background: var(--gradient-heaven);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+  }
+  
+  .verse-highlight {
+    @apply italic font-medium;
+    color: hsl(var(--primary));
+    position: relative;
+  }
+  
+  .verse-highlight::before {
+    content: '"';
+    @apply text-2xl font-playfair;
+    color: hsl(var(--accent));
+    position: absolute;
+    left: -0.5rem;
+    top: -0.2rem;
+  }
+  
+  .verse-highlight::after {
+    content: '"';
+    @apply text-2xl font-playfair;
+    color: hsl(var(--accent));
+    position: absolute;
+    right: -0.5rem;
+    bottom: -0.8rem;
+  }
+}
+
+@layer utilities {
+  .font-playfair {
+    font-family: 'Playfair Display', serif;
+  }
+  
+  .font-inter {
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .bg-gradient-heaven {
+    background: var(--gradient-heaven);
+  }
+  
+  .bg-gradient-divine {
+    background: var(--gradient-divine);
+  }
+  
+  .bg-gradient-peace {
+    background: var(--gradient-peace);
+  }
+  
+  .text-primary-glow {
+    color: hsl(var(--primary-glow));
+  }
+  
+  .text-life-green {
+    color: hsl(var(--life-green-deep));
+  }
+  
+  .text-divine-gold {
+    color: hsl(var(--divine-gold-deep));
+  }
+}
+
+/* Keyframes pour les animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { 
+    opacity: 0; 
+    transform: translateY(30px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
 }
