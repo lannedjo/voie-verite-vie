@@ -1,0 +1,320 @@
+import { useState } from 'react';
+import Navigation from '@/components/Navigation';
+import Footer from '@/components/Footer';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Calendar, Users, MapPin, Play, Image as ImageIcon, Filter, X } from 'lucide-react';
+
+const Gallery = () => {
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedMedia, setSelectedMedia] = useState<any>(null);
+
+  const categories = [
+    { id: 'all', name: 'Tout' },
+    { id: 'conferences', name: 'Conférences' },
+    { id: 'retraites', name: 'Retraites' },
+    { id: 'ateliers', name: 'Ateliers' },
+    { id: 'communaute', name: 'Vie communautaire' },
+    { id: 'projets', name: 'Projets' }
+  ];
+
+  const galleryItems = [
+    {
+      id: 1,
+      type: 'image',
+      title: 'Retraite spirituelle d\'Automne',
+      category: 'retraites',
+      date: '15 Oct 2024',
+      location: 'Monastère Sainte-Marie',
+      participants: 25,
+      description: 'Trois jours de silence, prière et méditation dans un cadre paisible.',
+      thumbnail: '/api/placeholder/400/300',
+      media: '/api/placeholder/800/600'
+    },
+    {
+      id: 2,
+      type: 'video',
+      title: 'Conférence : La spiritualité au quotidien',
+      category: 'conferences',
+      date: '20 Nov 2024',
+      location: 'Salle Saint-Paul',
+      participants: 85,
+      description: 'Comment intégrer la prière et la méditation dans notre vie moderne.',
+      thumbnail: '/api/placeholder/400/300',
+      media: '/api/placeholder/800/600',
+      duration: '1h 15min'
+    },
+    {
+      id: 3,
+      type: 'image',
+      title: 'Atelier de calligraphie sacrée',
+      category: 'ateliers',
+      date: '05 Nov 2024',
+      location: 'Atelier d\'art communautaire',
+      participants: 12,
+      description: 'Apprentissage de l\'art de la calligraphie biblique.',
+      thumbnail: '/api/placeholder/400/300',
+      media: '/api/placeholder/800/600'
+    },
+    {
+      id: 4,
+      type: 'video',
+      title: 'Collecte de Noël pour les démunis',
+      category: 'projets',
+      date: '25 Dec 2024',
+      location: 'Centre-ville',
+      participants: 67,
+      description: 'Action caritative de distribution de repas et cadeaux.',
+      thumbnail: '/api/placeholder/400/300',
+      media: '/api/placeholder/800/600',
+      duration: '8min'
+    },
+    {
+      id: 5,
+      type: 'image',
+      title: 'Étude biblique - Évangile de Matthieu',
+      category: 'ateliers',
+      date: '18 Nov 2024',
+      location: 'Bibliothèque paroissiale',
+      participants: 30,
+      description: 'Exploration approfondie du premier Évangile.',
+      thumbnail: '/api/placeholder/400/300',
+      media: '/api/placeholder/800/600'
+    },
+    {
+      id: 6,
+      type: 'image',
+      title: 'Assemblée générale annuelle',
+      category: 'communaute',
+      date: '10 Jan 2024',
+      location: 'Centre communautaire',
+      participants: 120,
+      description: 'Rencontre annuelle des membres de l\'association.',
+      thumbnail: '/api/placeholder/400/300',
+      media: '/api/placeholder/800/600'
+    },
+    {
+      id: 7,
+      type: 'video',
+      title: 'Méditation guidée en pleine nature',
+      category: 'retraites',
+      date: '22 Sep 2024',
+      location: 'Forêt de Fontainebleau',
+      participants: 18,
+      description: 'Méditation contemplative dans la création divine.',
+      thumbnail: '/api/placeholder/400/300',
+      media: '/api/placeholder/800/600',
+      duration: '45min'
+    },
+    {
+      id: 8,
+      type: 'image',
+      title: 'Groupe de prière hebdomadaire',
+      category: 'communaute',
+      date: '28 Nov 2024',
+      location: 'Chapelle Sainte-Thérèse',
+      participants: 35,
+      description: 'Moment de prière communautaire et d\'intercession.',
+      thumbnail: '/api/placeholder/400/300',
+      media: '/api/placeholder/800/600'
+    }
+  ];
+
+  const filteredItems = selectedCategory === 'all' 
+    ? galleryItems 
+    : galleryItems.filter(item => item.category === selectedCategory);
+
+  const openModal = (item: any) => {
+    setSelectedMedia(item);
+  };
+
+  const closeModal = () => {
+    setSelectedMedia(null);
+  };
+
+  return (
+    <div className="min-h-screen">
+      <Navigation />
+      <main className="pt-16">
+        {/* Hero Section */}
+        <section className="py-20 bg-gradient-subtle">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-4xl mx-auto">
+              <h1 className="text-4xl md:text-6xl font-playfair font-bold text-primary mb-6">
+                Notre Galerie
+              </h1>
+              <p className="text-xl text-muted-foreground leading-relaxed">
+                Revivez nos moments de partage, de prière et de croissance spirituelle
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Filters */}
+        <section className="py-12 bg-background">
+          <div className="container mx-auto px-4">
+            <div className="max-w-6xl mx-auto">
+              <div className="flex flex-wrap gap-3 justify-center mb-8">
+                {categories.map((category) => (
+                  <Button
+                    key={category.id}
+                    variant={selectedCategory === category.id ? "default" : "outline"}
+                    onClick={() => setSelectedCategory(category.id)}
+                    className="flex items-center space-x-2"
+                  >
+                    <Filter className="w-4 h-4" />
+                    <span>{category.name}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Gallery Grid */}
+        <section className="py-12">
+          <div className="container mx-auto px-4">
+            <div className="max-w-6xl mx-auto">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {filteredItems.map((item) => (
+                  <div 
+                    key={item.id} 
+                    className="bg-card/50 backdrop-blur-sm rounded-2xl overflow-hidden shadow-subtle border border-border/50 hover:shadow-elegant transition-all duration-300 group cursor-pointer"
+                    onClick={() => openModal(item)}
+                  >
+                    <div className="relative h-48 overflow-hidden">
+                      <div className="w-full h-full bg-gradient-peace/20 flex items-center justify-center relative">
+                        <div className="absolute inset-0 bg-gradient-peace/10 group-hover:scale-110 transition-transform duration-500"></div>
+                        <div className="relative z-10 text-center">
+                          {item.type === 'video' ? (
+                            <div className="relative">
+                              <Play className="w-16 h-16 text-white drop-shadow-lg" />
+                              {item.duration && (
+                                <Badge className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-black/70 text-white text-xs">
+                                  {item.duration}
+                                </Badge>
+                              )}
+                            </div>
+                          ) : (
+                            <ImageIcon className="w-16 h-16 text-white drop-shadow-lg" />
+                          )}
+                        </div>
+                      </div>
+                      <div className="absolute top-3 right-3">
+                        <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm">
+                          {item.type === 'video' ? 'Vidéo' : 'Photo'}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="p-6">
+                      <h3 className="text-lg font-playfair font-semibold text-primary mb-3 leading-tight">
+                        {item.title}
+                      </h3>
+                      
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                        {item.description}
+                      </p>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Calendar className="w-4 h-4 mr-2 text-primary" />
+                          {new Date(item.date).toLocaleDateString('fr-FR', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                          })}
+                        </div>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <MapPin className="w-4 h-4 mr-2 text-primary" />
+                          {item.location}
+                        </div>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Users className="w-4 h-4 mr-2 text-primary" />
+                          {item.participants} participants
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {filteredItems.length === 0 && (
+                <div className="text-center py-16">
+                  <ImageIcon className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-xl font-playfair font-semibold text-primary mb-2">
+                    Aucun média trouvé
+                  </h3>
+                  <p className="text-muted-foreground">
+                    Essayez de sélectionner une autre catégorie
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Modal */}
+        {selectedMedia && (
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
+            <div className="max-w-4xl max-h-[90vh] w-full bg-card rounded-2xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-4 right-4 z-10 bg-black/50 text-white hover:bg-black/70"
+                  onClick={closeModal}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+                
+                <div className="h-96 bg-gradient-peace/20 flex items-center justify-center">
+                  {selectedMedia.type === 'video' ? (
+                    <div className="text-center">
+                      <Play className="w-24 h-24 text-white mb-4 mx-auto" />
+                      <p className="text-white text-lg">Lecteur vidéo</p>
+                      <p className="text-white/70">Durée: {selectedMedia.duration}</p>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <ImageIcon className="w-24 h-24 text-white mb-4 mx-auto" />
+                      <p className="text-white text-lg">Image haute résolution</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="p-6">
+                <h3 className="text-2xl font-playfair font-bold text-primary mb-3">
+                  {selectedMedia.title}
+                </h3>
+                
+                <p className="text-muted-foreground mb-4 leading-relaxed">
+                  {selectedMedia.description}
+                </p>
+                
+                <div className="grid md:grid-cols-3 gap-4 text-sm">
+                  <div className="flex items-center">
+                    <Calendar className="w-4 h-4 mr-2 text-primary" />
+                    <span>{new Date(selectedMedia.date).toLocaleDateString('fr-FR')}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <MapPin className="w-4 h-4 mr-2 text-primary" />
+                    <span>{selectedMedia.location}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Users className="w-4 h-4 mr-2 text-primary" />
+                    <span>{selectedMedia.participants} participants</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+export default Gallery;

@@ -17,14 +17,13 @@ const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
-    { name: 'Accueil', href: '#accueil', icon: Cross },
-    { name: 'À propos', href: '#apropos', icon: BookOpen },
-    { name: 'Activités', href: '#activites', icon: Calendar },
-    { name: 'Lecture Biblique', href: '#lecture', icon: BookOpen },
-    { name: 'Communauté', href: '#communaute', icon: Users },
-    { name: 'Galerie', href: '#galerie', icon: Camera },
-    { name: 'FAQ', href: '#faq', icon: HelpCircle },
-    { name: 'Contact', href: '#contact', icon: Mail },
+    { name: 'Accueil', href: '/', icon: Cross },
+    { name: 'À propos', href: '/about', icon: BookOpen },
+    { name: 'Activités', href: '/activities', icon: Calendar },
+    { name: 'Lecture Biblique', href: '/biblical-reading', icon: BookOpen },
+    { name: 'Galerie', href: '/gallery', icon: Camera },
+    { name: 'FAQ', href: '/faq', icon: HelpCircle },
+    { name: 'Contact', href: '/contact', icon: Mail },
   ];
 
   return (
