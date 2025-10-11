@@ -4,6 +4,12 @@ import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Users, MapPin, Play, Image as ImageIcon, Filter, X } from 'lucide-react';
+import galleryRetreat from '@/assets/gallery-retreat.jpg';
+import activityConference from '@/assets/activity-conference.jpg';
+import activityBibleStudy from '@/assets/activity-bible-study.jpg';
+import activityCreative from '@/assets/activity-creative.jpg';
+import activityCommunity from '@/assets/activity-community.jpg';
+import activityMeditation from '@/assets/activity-meditation.jpg';
 
 const Gallery = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -28,8 +34,8 @@ const Gallery = () => {
       location: 'Monastère Sainte-Marie',
       participants: 25,
       description: 'Trois jours de silence, prière et méditation dans un cadre paisible.',
-      thumbnail: '/api/placeholder/400/300',
-      media: '/api/placeholder/800/600'
+      thumbnail: galleryRetreat,
+      media: galleryRetreat
     },
     {
       id: 2,
@@ -40,8 +46,8 @@ const Gallery = () => {
       location: 'Salle Saint-Paul',
       participants: 85,
       description: 'Comment intégrer la prière et la méditation dans notre vie moderne.',
-      thumbnail: '/api/placeholder/400/300',
-      media: '/api/placeholder/800/600',
+      thumbnail: activityConference,
+      media: activityConference,
       duration: '1h 15min'
     },
     {
@@ -53,8 +59,8 @@ const Gallery = () => {
       location: 'Atelier d\'art communautaire',
       participants: 12,
       description: 'Apprentissage de l\'art de la calligraphie biblique.',
-      thumbnail: '/api/placeholder/400/300',
-      media: '/api/placeholder/800/600'
+      thumbnail: activityCreative,
+      media: activityCreative
     },
     {
       id: 4,
@@ -65,8 +71,8 @@ const Gallery = () => {
       location: 'Centre-ville',
       participants: 67,
       description: 'Action caritative de distribution de repas et cadeaux.',
-      thumbnail: '/api/placeholder/400/300',
-      media: '/api/placeholder/800/600',
+      thumbnail: activityCommunity,
+      media: activityCommunity,
       duration: '8min'
     },
     {
@@ -78,8 +84,8 @@ const Gallery = () => {
       location: 'Bibliothèque paroissiale',
       participants: 30,
       description: 'Exploration approfondie du premier Évangile.',
-      thumbnail: '/api/placeholder/400/300',
-      media: '/api/placeholder/800/600'
+      thumbnail: activityBibleStudy,
+      media: activityBibleStudy
     },
     {
       id: 6,
@@ -90,8 +96,8 @@ const Gallery = () => {
       location: 'Centre communautaire',
       participants: 120,
       description: 'Rencontre annuelle des membres de l\'association.',
-      thumbnail: '/api/placeholder/400/300',
-      media: '/api/placeholder/800/600'
+      thumbnail: activityConference,
+      media: activityConference
     },
     {
       id: 7,
@@ -102,8 +108,8 @@ const Gallery = () => {
       location: 'Forêt de Fontainebleau',
       participants: 18,
       description: 'Méditation contemplative dans la création divine.',
-      thumbnail: '/api/placeholder/400/300',
-      media: '/api/placeholder/800/600',
+      thumbnail: activityMeditation,
+      media: activityMeditation,
       duration: '45min'
     },
     {
@@ -115,8 +121,8 @@ const Gallery = () => {
       location: 'Chapelle Sainte-Thérèse',
       participants: 35,
       description: 'Moment de prière communautaire et d\'intercession.',
-      thumbnail: '/api/placeholder/400/300',
-      media: '/api/placeholder/800/600'
+      thumbnail: activityConference,
+      media: activityConference
     }
   ];
 
@@ -179,28 +185,33 @@ const Gallery = () => {
                 {filteredItems.map((item) => (
                   <div 
                     key={item.id} 
-                    className="bg-card/50 backdrop-blur-sm rounded-2xl overflow-hidden shadow-subtle border border-border/50 hover:shadow-elegant transition-all duration-300 group cursor-pointer"
+                    className="bg-card/50 backdrop-blur-sm rounded-2xl overflow-hidden shadow-subtle border border-border/50 hover:shadow-elegant transition-all duration-300 group cursor-pointer animate-fade-in-up"
                     onClick={() => openModal(item)}
                   >
                     <div className="relative h-48 overflow-hidden">
-                      <div className="w-full h-full bg-gradient-peace/20 flex items-center justify-center relative">
-                        <div className="absolute inset-0 bg-gradient-peace/10 group-hover:scale-110 transition-transform duration-500"></div>
+                      <img 
+                        src={item.thumbnail} 
+                        alt={item.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                      <div className="absolute inset-0 flex items-center justify-center">
                         <div className="relative z-10 text-center">
                           {item.type === 'video' ? (
                             <div className="relative">
-                              <Play className="w-16 h-16 text-white drop-shadow-lg" />
+                              <div className="bg-white/20 backdrop-blur-sm rounded-full p-4">
+                                <Play className="w-12 h-12 text-white drop-shadow-lg" />
+                              </div>
                               {item.duration && (
                                 <Badge className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-black/70 text-white text-xs">
                                   {item.duration}
                                 </Badge>
                               )}
                             </div>
-                          ) : (
-                            <ImageIcon className="w-16 h-16 text-white drop-shadow-lg" />
-                          )}
+                          ) : null}
                         </div>
                       </div>
-                      <div className="absolute top-3 right-3">
+                      <div className="absolute top-3 right-3 z-20">
                         <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm">
                           {item.type === 'video' ? 'Vidéo' : 'Photo'}
                         </Badge>
@@ -268,17 +279,21 @@ const Gallery = () => {
                   <X className="w-4 h-4" />
                 </Button>
                 
-                <div className="h-96 bg-gradient-peace/20 flex items-center justify-center">
-                  {selectedMedia.type === 'video' ? (
-                    <div className="text-center">
-                      <Play className="w-24 h-24 text-white mb-4 mx-auto" />
-                      <p className="text-white text-lg">Lecteur vidéo</p>
-                      <p className="text-white/70">Durée: {selectedMedia.duration}</p>
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      <ImageIcon className="w-24 h-24 text-white mb-4 mx-auto" />
-                      <p className="text-white text-lg">Image haute résolution</p>
+                <div className="h-96 relative overflow-hidden">
+                  <img 
+                    src={selectedMedia.media} 
+                    alt={selectedMedia.title}
+                    className="w-full h-full object-cover"
+                  />
+                  {selectedMedia.type === 'video' && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                      <div className="text-center">
+                        <div className="bg-white/20 backdrop-blur-sm rounded-full p-8 mb-4 inline-block">
+                          <Play className="w-16 h-16 text-white" />
+                        </div>
+                        <p className="text-white text-lg font-semibold">Lecteur vidéo</p>
+                        <p className="text-white/80">Durée: {selectedMedia.duration}</p>
+                      </div>
                     </div>
                   )}
                 </div>

@@ -60,6 +60,12 @@ Toutes les couleurs DOIVENT être en HSL.
     --input: 210 20% 95%;
     --ring: 201 84% 65%;
     
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 221 39% 11%;
+    
     /* Gradients spirituels */
     --gradient-heaven: linear-gradient(135deg, hsl(201 94% 87%), hsl(152 57% 75%));
     --gradient-divine: linear-gradient(180deg, hsl(0 0% 100%), hsl(201 94% 87%));

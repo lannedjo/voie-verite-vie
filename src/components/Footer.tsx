@@ -11,26 +11,27 @@ import {
   Heart,
   Send
 } from 'lucide-react';
+import logo3v from '@/assets/logo-3v.png';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   const links = {
     navigation: [
-      { name: 'Accueil', href: '#accueil' },
-      { name: 'À propos', href: '#apropos' },
-      { name: 'Activités', href: '#activites' },
-      { name: 'Lecture Biblique', href: '#lecture' },
+      { name: 'Accueil', href: '/' },
+      { name: 'À propos', href: '/about' },
+      { name: 'Activités', href: '/activities' },
+      { name: 'Lecture Biblique', href: '/biblical-reading' },
     ],
     community: [
-      { name: 'Communauté', href: '#communaute' },
-      { name: 'Galerie', href: '#galerie' },
+      { name: 'Galerie', href: '/gallery' },
+      { name: 'FAQ', href: '/faq' },
+      { name: 'Contact', href: '/contact' },
       { name: 'Témoignages', href: '#temoignages' },
-      { name: 'Blog', href: '#blog' },
     ],
     support: [
-      { name: 'Contact', href: '#contact' },
-      { name: 'FAQ', href: '#faq' },
+      { name: 'Contact', href: '/contact' },
+      { name: 'FAQ', href: '/faq' },
       { name: 'Nous soutenir', href: '#don' },
       { name: 'Rejoindre', href: '#adhesion' },
     ]
@@ -51,9 +52,11 @@ const Footer = () => {
             {/* Logo et mission */}
             <div className="lg:col-span-1">
               <div className="flex items-center space-x-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-peace rounded-full flex items-center justify-center">
-                  <Cross className="w-5 h-5 text-white" />
-                </div>
+                <img 
+                  src={logo3v} 
+                  alt="Logo 3V - Voie, Vérité, Vie" 
+                  className="h-10 w-auto"
+                />
                 <span className="text-xl font-playfair font-semibold">
                   Voie, Vérité, Vie
                 </span>
@@ -88,7 +91,7 @@ const Footer = () => {
                     <li key={link.name}>
                       <a
                         href={link.href}
-                        className="text-background/80 hover:text-background transition-colors"
+                        className="text-background/80 hover:text-background transition-colors hover:translate-x-1 inline-block"
                       >
                         {link.name}
                       </a>
@@ -104,7 +107,7 @@ const Footer = () => {
                     <li key={link.name}>
                       <a
                         href={link.href}
-                        className="text-background/80 hover:text-background transition-colors"
+                        className="text-background/80 hover:text-background transition-colors hover:translate-x-1 inline-block"
                       >
                         {link.name}
                       </a>
@@ -120,7 +123,7 @@ const Footer = () => {
                     <li key={link.name}>
                       <a
                         href={link.href}
-                        className="text-background/80 hover:text-background transition-colors"
+                        className="text-background/80 hover:text-background transition-colors hover:translate-x-1 inline-block"
                       >
                         {link.name}
                       </a>

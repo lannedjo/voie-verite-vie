@@ -5,6 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, Users, Clock, Search, Filter, Heart, Book, Users2, Paintbrush, Globe, MessageSquare, HandHeart } from 'lucide-react';
+import activityConference from '@/assets/activity-conference.jpg';
+import activityMeditation from '@/assets/activity-meditation.jpg';
+import activityBibleStudy from '@/assets/activity-bible-study.jpg';
+import activityCommunity from '@/assets/activity-community.jpg';
+import activityCreative from '@/assets/activity-creative.jpg';
 
 const Activities = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,7 +37,7 @@ const Activities = () => {
       participants: 45,
       maxParticipants: 80,
       description: 'Intégrer la prière, la méditation et la bienveillance dans la vie de tous les jours, en s\'inspirant des Écritures.',
-      image: '/api/placeholder/400/200',
+      image: activityConference,
       price: 'Gratuit',
       status: 'open'
     },
@@ -46,7 +51,7 @@ const Activities = () => {
       participants: 12,
       maxParticipants: 20,
       description: 'Pratiquer la pleine conscience et la respiration pour calmer l\'esprit et se rapprocher de Dieu.',
-      image: '/api/placeholder/400/200',
+      image: activityMeditation,
       price: 'Gratuit',
       status: 'open'
     },
@@ -60,7 +65,7 @@ const Activities = () => {
       participants: 28,
       maxParticipants: 30,
       description: 'Exploration approfondie de l\'Évangile selon saint Matthieu dans le contexte de l\'année liturgique A.',
-      image: '/api/placeholder/400/200',
+      image: activityBibleStudy,
       price: 'Gratuit',
       status: 'almost-full'
     },
@@ -74,7 +79,7 @@ const Activities = () => {
       participants: 67,
       maxParticipants: 100,
       description: 'Action caritative de Noël pour soutenir les familles en difficulté de notre communauté.',
-      image: '/api/placeholder/400/200',
+      image: activityCommunity,
       price: 'Gratuit',
       status: 'open'
     },
@@ -88,7 +93,7 @@ const Activities = () => {
       participants: 15,
       maxParticipants: 25,
       description: 'Explorer la communication, le pardon et l\'amour fraternel, guidés par les valeurs bibliques.',
-      image: '/api/placeholder/400/200',
+      image: activityConference,
       price: 'Gratuit',
       status: 'open'
     },
@@ -102,7 +107,7 @@ const Activities = () => {
       participants: 8,
       maxParticipants: 15,
       description: 'Exprimer sa spiritualité à travers l\'art de la calligraphie en transcrivant des versets bibliques.',
-      image: '/api/placeholder/400/200',
+      image: activityCreative,
       price: '15€',
       status: 'open'
     }
@@ -193,14 +198,21 @@ const Activities = () => {
             <div className="max-w-6xl mx-auto">
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {filteredActivities.map((activity) => (
-                  <div key={activity.id} className="bg-card/50 backdrop-blur-sm rounded-2xl overflow-hidden shadow-subtle border border-border/50 hover:shadow-elegant transition-all duration-300 group">
-                    <div className="h-48 bg-gradient-peace/20 flex items-center justify-center relative overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-peace/10 group-hover:scale-110 transition-transform duration-500"></div>
-                      <div className="relative z-10 text-center">
-                        <Calendar className="w-12 h-12 text-primary mx-auto mb-2" />
-                        <p className="text-sm text-primary font-semibold">
-                          {activity.date}
-                        </p>
+                  <div key={activity.id} className="bg-card/50 backdrop-blur-sm rounded-2xl overflow-hidden shadow-subtle border border-border/50 hover:shadow-elegant transition-all duration-300 group animate-fade-in-up">
+                    <div className="h-48 relative overflow-hidden">
+                      <img 
+                        src={activity.image} 
+                        alt={activity.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                      <div className="absolute bottom-4 left-4 z-10">
+                        <div className="flex items-center space-x-2 text-white">
+                          <Calendar className="w-5 h-5" />
+                          <p className="text-sm font-semibold">
+                            {activity.date}
+                          </p>
+                        </div>
                       </div>
                     </div>
                     
