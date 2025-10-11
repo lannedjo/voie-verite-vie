@@ -12,6 +12,7 @@ import {
   HelpCircle,
   User
 } from 'lucide-react';
+import logo3v from '@/assets/logo-3v.png';
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -31,14 +32,16 @@ const Navigation = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-peace rounded-full flex items-center justify-center">
-              <Cross className="w-4 h-4 text-white" />
-            </div>
+          <a href="/" className="flex items-center space-x-3">
+            <img 
+              src={logo3v} 
+              alt="Logo 3V - Voie, Vérité, Vie" 
+              className="h-10 w-auto"
+            />
             <span className="text-xl font-playfair font-semibold text-primary">
               Voie, Vérité, Vie
             </span>
-          </div>
+          </a>
 
           {/* Navigation Desktop */}
           <div className="hidden md:flex items-center space-x-8">

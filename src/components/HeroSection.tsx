@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Heart, BookOpen } from 'lucide-react';
 import heroDove from '@/assets/hero-dove.jpg';
+import logo3v from '@/assets/logo-3v.png';
 
 const HeroSection = () => {
   const [currentVerse, setCurrentVerse] = useState(0);
@@ -48,10 +49,12 @@ const HeroSection = () => {
         <div className="max-w-4xl mx-auto text-center">
           {/* Logo et titre principal */}
           <div className="fade-in-up mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-white/90 rounded-full mb-6 divine-glow">
-              <div className="w-12 h-12 bg-gradient-peace rounded-full flex items-center justify-center">
-                <Heart className="w-6 h-6 text-white" />
-              </div>
+            <div className="inline-flex items-center justify-center mb-6">
+              <img 
+                src={logo3v} 
+                alt="Logo 3V - Voie, Vérité, Vie" 
+                className="h-32 w-auto divine-glow"
+              />
             </div>
             <h1 className="text-5xl md:text-7xl font-playfair font-bold text-foreground mb-4">
               Voie, Vérité, Vie
