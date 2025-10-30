@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -8,17 +7,47 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, Phone, MapPin, Send, MessageCircle, Heart, HelpCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
+const contactFormSchema = z.object({
+  name: z.string()
+    .trim()
+    .min(2, { message: 'Le nom doit contenir au moins 2 caractères' })
+    .max(100, { message: 'Le nom ne peut pas dépasser 100 caractères' }),
+  email: z.string()
+    .trim()
+    .email({ message: 'Adresse email invalide' })
+    .max(255, { message: 'L\'email ne peut pas dépasser 255 caractères' }),
+  type: z.enum(['question', 'adhesion', 'activite', 'don', 'temoignage', 'autre'], {
+    required_error: 'Veuillez sélectionner un type de demande'
+  }),
+  subject: z.string()
+    .trim()
+    .max(200, { message: 'Le sujet ne peut pas dépasser 200 caractères' })
+    .optional(),
+  message: z.string()
+    .trim()
+    .min(10, { message: 'Le message doit contenir au moins 10 caractères' })
+    .max(2000, { message: 'Le message ne peut pas dépasser 2000 caractères' })
+});
+
+type ContactFormValues = z.infer<typeof contactFormSchema>;
 
 const Contact = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    type: '',
-    message: ''
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const form = useForm<ContactFormValues>({
+    resolver: zodResolver(contactFormSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      subject: '',
+      type: undefined,
+      message: ''
+    }
+  });
 
   const contactTypes = [
     { value: 'question', label: 'Question générale', icon: HelpCircle },
@@ -29,19 +58,9 @@ const Contact = () => {
     { value: 'autre', label: 'Autre', icon: Mail }
   ];
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    // Simulation d'envoi
+  const onSubmit = async (data: ContactFormValues) => {
     try {
+      // Simulation d'envoi - ici vous pourriez envoyer vers un backend
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       toast({
@@ -50,21 +69,13 @@ const Contact = () => {
       });
 
       // Reset form
-      setFormData({
-        name: '',
-        email: '',
-        subject: '',
-        type: '',
-        message: ''
-      });
+      form.reset();
     } catch (error) {
       toast({
         title: "Erreur lors de l'envoi",
         description: "Veuillez réessayer plus tard.",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -99,103 +110,133 @@ const Contact = () => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                              Nom complet *
-                            </label>
-                            <Input
-                              value={formData.name}
-                              onChange={(e) => handleInputChange('name', e.target.value)}
-                              required
-                              className="bg-background/50"
-                              placeholder="Votre nom"
+                      <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="name"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Nom complet *</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      className="bg-background/50"
+                                      placeholder="Votre nom"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="email"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Email *</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      type="email"
+                                      className="bg-background/50"
+                                      placeholder="votre@email.com"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
                             />
                           </div>
-                          <div>
-                            <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                              Email *
-                            </label>
-                            <Input
-                              type="email"
-                              value={formData.email}
-                              onChange={(e) => handleInputChange('email', e.target.value)}
-                              required
-                              className="bg-background/50"
-                              placeholder="votre@email.com"
-                            />
-                          </div>
-                        </div>
 
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                            Type de demande *
-                          </label>
-                          <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
-                            <SelectTrigger className="bg-background/50">
-                              <SelectValue placeholder="Sélectionnez le type de votre demande" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {contactTypes.map((type) => {
-                                const Icon = type.icon;
-                                return (
-                                  <SelectItem key={type.value} value={type.value}>
-                                    <div className="flex items-center space-x-2">
-                                      <Icon className="w-4 h-4" />
-                                      <span>{type.label}</span>
-                                    </div>
-                                  </SelectItem>
-                                );
-                              })}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                            Sujet
-                          </label>
-                          <Input
-                            value={formData.subject}
-                            onChange={(e) => handleInputChange('subject', e.target.value)}
-                            className="bg-background/50"
-                            placeholder="Résumé de votre message"
+                          <FormField
+                            control={form.control}
+                            name="type"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Type de demande *</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger className="bg-background/50">
+                                      <SelectValue placeholder="Sélectionnez le type de votre demande" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {contactTypes.map((type) => {
+                                      const Icon = type.icon;
+                                      return (
+                                        <SelectItem key={type.value} value={type.value}>
+                                          <div className="flex items-center space-x-2">
+                                            <Icon className="w-4 h-4" />
+                                            <span>{type.label}</span>
+                                          </div>
+                                        </SelectItem>
+                                      );
+                                    })}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
                           />
-                        </div>
 
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                            Message *
-                          </label>
-                          <Textarea
-                            value={formData.message}
-                            onChange={(e) => handleInputChange('message', e.target.value)}
-                            required
-                            rows={6}
-                            className="bg-background/50 resize-none"
-                            placeholder="Décrivez votre demande, vos questions ou partagez votre témoignage..."
+                          <FormField
+                            control={form.control}
+                            name="subject"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Sujet</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    className="bg-background/50"
+                                    placeholder="Résumé de votre message"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
                           />
-                        </div>
 
-                        <Button
-                          type="submit"
-                          disabled={isSubmitting}
-                          className="w-full divine-glow"
-                        >
-                          {isSubmitting ? (
-                            <div className="flex items-center space-x-2">
-                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                              <span>Envoi en cours...</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center space-x-2">
-                              <Send className="w-4 h-4" />
-                              <span>Envoyer le message</span>
-                            </div>
-                          )}
-                        </Button>
-                      </form>
+                          <FormField
+                            control={form.control}
+                            name="message"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Message *</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    {...field}
+                                    rows={6}
+                                    className="bg-background/50 resize-none"
+                                    placeholder="Décrivez votre demande, vos questions ou partagez votre témoignage..."
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <Button
+                            type="submit"
+                            disabled={form.formState.isSubmitting}
+                            className="w-full divine-glow"
+                          >
+                            {form.formState.isSubmitting ? (
+                              <div className="flex items-center space-x-2">
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <span>Envoi en cours...</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <Send className="w-4 h-4" />
+                                <span>Envoyer le message</span>
+                              </div>
+                            )}
+                          </Button>
+                        </form>
+                      </Form>
                     </CardContent>
                   </Card>
                 </div>
