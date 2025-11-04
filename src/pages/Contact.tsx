@@ -1,5 +1,4 @@
 import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,6 +10,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { supabase } from '@/integrations/supabase/client';
 
 const contactFormSchema = z.object({
   name: z.string()
@@ -60,17 +60,20 @@ const Contact = () => {
 
   const onSubmit = async (data: ContactFormValues) => {
     try {
-      // Simulation d'envoi - ici vous pourriez envoyer vers un backend
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      toast({
-        title: "Message envoyé avec succès !",
-        description: "Nous vous répondrons dans les plus brefs délais.",
+      const { data: result, error } = await supabase.functions.invoke('submit-contact', {
+        body: data
       });
 
-      // Reset form
+      if (error) throw error;
+
+      toast({
+        title: "Message envoyé avec succès !",
+        description: result.message || "Nous vous répondrons dans les plus brefs délais.",
+      });
+
       form.reset();
     } catch (error) {
+      console.error('Error submitting contact form:', error);
       toast({
         title: "Erreur lors de l'envoi",
         description: "Veuillez réessayer plus tard.",
@@ -339,7 +342,6 @@ const Contact = () => {
           </div>
         </section>
       </main>
-      <Footer />
     </div>
   );
 };

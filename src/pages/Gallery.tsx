@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Users, MapPin, Play, Image as ImageIcon, Filter, X } from 'lucide-react';
@@ -327,7 +326,6 @@ const Gallery = () => {
           </div>
         )}
       </main>
-      <Footer />
     </div>
   );
 };

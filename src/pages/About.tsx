@@ -1,5 +1,4 @@
 import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
 import { Cross, Heart, Book, Users, Calendar, Target } from 'lucide-react';
 
 const About = () => {
@@ -175,7 +174,6 @@ const About = () => {
           </div>
         </section>
       </main>
-      <Footer />
     </div>
   );
 };

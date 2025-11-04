@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -277,7 +276,6 @@ const Activities = () => {
           </div>
         </section>
       </main>
-      <Footer />
     </div>
   );
 };

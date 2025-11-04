@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -349,7 +348,6 @@ const BiblicalReading = () => {
           </div>
         </section>
       </main>
-      <Footer />
     </div>
   );
 };

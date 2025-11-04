@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
 import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
@@ -241,7 +240,6 @@ const FAQ = () => {
           </div>
         </section>
       </main>
-      <Footer />
     </div>
   );
 };
