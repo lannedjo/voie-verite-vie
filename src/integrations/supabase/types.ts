@@ -14,6 +14,104 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_conversations: {
+        Row: {
+          created_at: string | null
+          id: string
+          title: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      ai_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string | null
+          id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          role: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      biblical_readings: {
+        Row: {
+          books: string
+          chapters: string
+          chapters_count: number
+          comment: string | null
+          created_at: string | null
+          date: string
+          day_number: number
+          id: string
+          month: number
+          type: string
+          year: number
+        }
+        Insert: {
+          books: string
+          chapters: string
+          chapters_count: number
+          comment?: string | null
+          created_at?: string | null
+          date: string
+          day_number: number
+          id?: string
+          month: number
+          type: string
+          year: number
+        }
+        Update: {
+          books?: string
+          chapters?: string
+          chapters_count?: number
+          comment?: string | null
+          created_at?: string | null
+          date?: string
+          day_number?: number
+          id?: string
+          month?: number
+          type?: string
+          year?: number
+        }
+        Relationships: []
+      }
       contact_messages: {
         Row: {
           created_at: string
@@ -44,15 +142,95 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      user_reading_progress: {
+        Row: {
+          completed: boolean | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          reading_id: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          reading_id: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          reading_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_reading_progress_reading_id_fkey"
+            columns: ["reading_id"]
+            isOneToOne: false
+            referencedRelation: "biblical_readings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -179,6 +357,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const

@@ -14,6 +14,9 @@ import Contact from "./pages/Contact";
 import Gallery from "./pages/Gallery";
 import FAQ from "./pages/FAQ";
 import Install from "./pages/Install";
+import Auth from "./pages/Auth";
+import Admin from "./pages/Admin";
+import AIChat from "./pages/AIChat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +48,9 @@ const App = () => {
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/faq" element={<FAQ />} />
             <Route path="/install" element={<Install />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/ai-chat" element={<AIChat />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
