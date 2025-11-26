@@ -145,20 +145,30 @@ export const AIAssistant = () => {
   };
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Bot className="w-5 h-5" />
-          Assistant Spirituel
+    <Card className="h-full flex flex-col shadow-lg border-primary/20">
+      <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-primary/10">
+        <CardTitle className="flex items-center gap-3">
+          <div className="p-2 bg-primary rounded-lg">
+            <Bot className="w-6 h-6 text-primary-foreground" />
+          </div>
+          <div>
+            <h2 className="text-xl font-playfair">Assistant Spirituel IA</h2>
+            <p className="text-xs text-muted-foreground font-normal">Posez vos questions sur la Bible et la foi</p>
+          </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col p-0">
-        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-          <div className="space-y-4">
+      <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
+        <ScrollArea className="flex-1 p-6" ref={scrollRef}>
+          <div className="space-y-6">
             {messages.length === 0 && (
-              <div className="text-center text-muted-foreground py-8">
-                <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Posez-moi vos questions sur la Bible et la spiritualité</p>
+              <div className="text-center py-12">
+                <div className="inline-flex p-4 bg-primary/10 rounded-full mb-4">
+                  <Bot className="w-16 h-16 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Bienvenue !</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Je suis votre assistant spirituel. Posez-moi vos questions sur la Bible, la théologie chrétienne, ou demandez des conseils spirituels.
+                </p>
               </div>
             )}
             {messages.map((message, index) => (
@@ -166,57 +176,62 @@ export const AIAssistant = () => {
                 key={index}
                 className={`flex gap-3 ${
                   message.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}
+                } animate-in fade-in slide-in-from-bottom-4 duration-300`}
               >
                 {message.role === 'assistant' && (
-                  <div className="bg-primary rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">
-                    <Bot className="w-4 h-4 text-primary-foreground" />
+                  <div className="bg-primary rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0 shadow-md">
+                    <Bot className="w-5 h-5 text-primary-foreground" />
                   </div>
                 )}
                 <div
-                  className={`rounded-lg p-3 max-w-[80%] ${
+                  className={`rounded-2xl p-4 max-w-[85%] shadow-sm ${
                     message.role === 'user'
                       ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
+                      : 'bg-muted border border-border'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap">{message.content}</p>
+                  <p className="whitespace-pre-wrap leading-relaxed text-sm">{message.content}</p>
                 </div>
                 {message.role === 'user' && (
-                  <div className="bg-secondary rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">
-                    <User className="w-4 h-4 text-secondary-foreground" />
+                  <div className="bg-secondary rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0 shadow-md">
+                    <User className="w-5 h-5 text-secondary-foreground" />
                   </div>
                 )}
               </div>
             ))}
             {isLoading && (
-              <div className="flex gap-3 justify-start">
-                <div className="bg-primary rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-4 h-4 text-primary-foreground" />
+              <div className="flex gap-3 justify-start animate-in fade-in slide-in-from-bottom-4">
+                <div className="bg-primary rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0 shadow-md">
+                  <Bot className="w-5 h-5 text-primary-foreground" />
                 </div>
-                <div className="bg-muted rounded-lg p-3">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" />
-                    <div className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                    <div className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                <div className="bg-muted border border-border rounded-2xl p-4 shadow-sm">
+                  <div className="flex gap-1.5">
+                    <div className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce" />
+                    <div className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
+                    <div className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
                   </div>
                 </div>
               </div>
             )}
           </div>
         </ScrollArea>
-        <div className="p-4 border-t">
-          <div className="flex gap-2">
+        <div className="p-4 border-t bg-muted/30">
+          <div className="flex gap-3">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Posez votre question..."
+              placeholder="Tapez votre question ici..."
               disabled={isLoading}
-              className="flex-1"
+              className="flex-1 h-12 px-4 rounded-xl border-2 focus-visible:ring-primary"
             />
-            <Button onClick={handleSend} disabled={isLoading || !input.trim()}>
-              <Send className="w-4 h-4" />
+            <Button 
+              onClick={handleSend} 
+              disabled={isLoading || !input.trim()}
+              size="lg"
+              className="h-12 px-6 rounded-xl"
+            >
+              <Send className="w-5 h-5" />
             </Button>
           </div>
         </div>
