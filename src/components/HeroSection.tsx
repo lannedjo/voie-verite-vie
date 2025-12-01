@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Heart, BookOpen } from 'lucide-react';
 import heroDove from '@/assets/hero-dove.jpg';
@@ -103,17 +104,23 @@ const HeroSection = () => {
             <Button 
               size="lg" 
               className="divine-glow text-lg px-8 py-6 bg-gradient-peace hover:scale-105 transition-all duration-300"
+              asChild
             >
-              Rejoignez notre communauté
-              <ArrowRight className="ml-2 w-5 h-5" />
+              <Link to="/auth">
+                Rejoignez notre communauté
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Link>
             </Button>
             <Button 
               variant="outline" 
               size="lg"
               className="text-lg px-8 py-6 border-2 border-primary/30 hover:bg-primary/5 hover:scale-105 transition-all duration-300"
+              asChild
             >
-              <BookOpen className="mr-2 w-5 h-5" />
-              Découvrir nos activités
+              <Link to="/activities">
+                <BookOpen className="mr-2 w-5 h-5" />
+                Découvrir nos activités
+              </Link>
             </Button>
           </div>
 
