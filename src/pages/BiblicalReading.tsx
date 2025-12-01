@@ -23,7 +23,7 @@ interface Reading {
 }
 
 const BiblicalReading = () => {
-  const [selectedMonth, setSelectedMonth] = useState(11);
+  const [selectedMonth, setSelectedMonth] = useState(11); // Mois 1-12, 11 = novembre
   const [selectedTestament, setSelectedTestament] = useState('all');
   const [readings, setReadings] = useState<Reading[]>([]);
   const [userProgress, setUserProgress] = useState<any[]>([]);
@@ -31,10 +31,6 @@ const BiblicalReading = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (!user) navigate('/auth');
-  }, [user, navigate]);
 
   useEffect(() => {
     loadReadings();
@@ -127,9 +123,9 @@ const BiblicalReading = () => {
             </div>
 
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
-              <Button variant="outline" size="sm" onClick={() => setSelectedMonth(prev => prev === 0 ? 11 : prev - 1)}><ChevronLeft className="w-4 h-4 mr-2" />Précédent</Button>
-              <h2 className="text-xl md:text-3xl font-playfair font-bold text-primary">{months[selectedMonth]} 2026</h2>
-              <Button variant="outline" size="sm" onClick={() => setSelectedMonth(prev => prev === 11 ? 0 : prev + 1)}>Suivant<ChevronRight className="w-4 h-4 ml-2" /></Button>
+              <Button variant="outline" size="sm" onClick={() => setSelectedMonth(prev => prev === 1 ? 12 : prev - 1)}><ChevronLeft className="w-4 h-4 mr-2" />Précédent</Button>
+              <h2 className="text-xl md:text-3xl font-playfair font-bold text-primary">{months[selectedMonth - 1]} 2026</h2>
+              <Button variant="outline" size="sm" onClick={() => setSelectedMonth(prev => prev === 12 ? 1 : prev + 1)}>Suivant<ChevronRight className="w-4 h-4 ml-2" /></Button>
             </div>
 
             <Tabs value={selectedTestament} onValueChange={setSelectedTestament} className="mb-8">
