@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -287,14 +288,18 @@ const ProgramSection = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="divine-glow">
-                <Play className="w-4 h-4 mr-2" />
-                Commencer maintenant
+              <Button size="lg" className="divine-glow" asChild>
+                <Link to="/biblical-reading">
+                  <Play className="w-4 h-4 mr-2" />
+                  Commencer maintenant
+                </Link>
               </Button>
-              <Button variant="outline" size="lg">
-                <Calendar className="w-4 h-4 mr-2" />
-                Voir le calendrier complet
-                <ArrowRight className="w-4 h-4 ml-2" />
+              <Button variant="outline" size="lg" asChild>
+                <Link to="/biblical-reading">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Voir le calendrier complet
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
               </Button>
             </div>
           </CardContent>
