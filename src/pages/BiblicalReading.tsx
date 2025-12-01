@@ -23,9 +23,9 @@ interface Reading {
 }
 
 const BiblicalReading = () => {
-  const [selectedMonth, setSelectedMonth] = useState(11); // Mois 1-12, 11 = novembre
+  const [selectedMonth, setSelectedMonth] = useState<number | 'all'>('all');
   const [selectedTestament, setSelectedTestament] = useState('all');
-  const [readings, setReadings] = useState<Reading[]>([]);
+  const [allReadings, setAllReadings] = useState<Reading[]>([]);
   const [userProgress, setUserProgress] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -33,19 +33,18 @@ const BiblicalReading = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    loadReadings();
+    loadAllReadings();
     if (user) loadUserProgress();
-  }, [selectedMonth, user]);
+  }, [user]);
 
-  const loadReadings = async () => {
+  const loadAllReadings = async () => {
     try {
       const { data, error } = await supabase
         .from('biblical_readings')
         .select('*')
-        .eq('month', selectedMonth)
         .order('day_number');
       if (error) throw error;
-      setReadings(data || []);
+      setAllReadings(data || []);
     } catch (error) {
       toast({ title: "Erreur", description: "Impossible de charger les lectures", variant: "destructive" });
     } finally {
@@ -87,12 +86,23 @@ const BiblicalReading = () => {
   };
 
   const filteredReadings = useMemo(() => {
-    if (selectedTestament === 'all') return readings;
-    const ntBooks = ['Matthieu', 'Marc', 'Luc', 'Jean', 'Actes', 'Romains'];
-    return selectedTestament === 'old' 
-      ? readings.filter(r => !ntBooks.some(nt => r.books.includes(nt)))
-      : readings.filter(r => ntBooks.some(nt => r.books.includes(nt)));
-  }, [readings, selectedTestament]);
+    let filtered = allReadings;
+    
+    // Filtrer par mois
+    if (selectedMonth !== 'all') {
+      filtered = filtered.filter(r => r.month === selectedMonth);
+    }
+    
+    // Filtrer par testament
+    if (selectedTestament !== 'all') {
+      const ntBooks = ['Matthieu', 'Marc', 'Luc', 'Jean', 'Actes', 'Romains', 'Corinthiens', 'Galates', 'Éphésiens', 'Philippiens', 'Colossiens', 'Thessaloniciens', 'Timothée', 'Tite', 'Philémon', 'Hébreux', 'Jacques', 'Pierre', 'Jude', 'Apocalypse'];
+      filtered = selectedTestament === 'old' 
+        ? filtered.filter(r => !ntBooks.some(nt => r.books.includes(nt)))
+        : filtered.filter(r => ntBooks.some(nt => r.books.includes(nt)));
+    }
+    
+    return filtered;
+  }, [allReadings, selectedMonth, selectedTestament]);
 
   const months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
   const completedCount = userProgress.filter(p => p.completed).length;
@@ -118,14 +128,36 @@ const BiblicalReading = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <Card><CardHeader className="pb-2"><CardTitle className="text-xs md:text-sm">Progression</CardTitle></CardHeader><CardContent><div className="text-xl md:text-2xl font-bold text-primary">{progressPercentage}%</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-xs md:text-sm">Complétées</CardTitle></CardHeader><CardContent><div className="text-xl md:text-2xl font-bold text-primary">{completedCount}/358</div></CardContent></Card>
-              <Card><CardHeader className="pb-2"><CardTitle className="text-xs md:text-sm">Ce mois</CardTitle></CardHeader><CardContent><div className="text-xl md:text-2xl font-bold text-primary">{readings.length}</div></CardContent></Card>
+              <Card><CardHeader className="pb-2"><CardTitle className="text-xs md:text-sm">Affichées</CardTitle></CardHeader><CardContent><div className="text-xl md:text-2xl font-bold text-primary">{filteredReadings.length}</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-xs md:text-sm">Restants</CardTitle></CardHeader><CardContent><div className="text-xl md:text-2xl font-bold text-primary">{358 - completedCount}</div></CardContent></Card>
             </div>
 
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
-              <Button variant="outline" size="sm" onClick={() => setSelectedMonth(prev => prev === 1 ? 12 : prev - 1)}><ChevronLeft className="w-4 h-4 mr-2" />Précédent</Button>
-              <h2 className="text-xl md:text-3xl font-playfair font-bold text-primary">{months[selectedMonth - 1]} 2026</h2>
-              <Button variant="outline" size="sm" onClick={() => setSelectedMonth(prev => prev === 12 ? 1 : prev + 1)}>Suivant<ChevronRight className="w-4 h-4 ml-2" /></Button>
+            <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-8">
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button 
+                  variant={selectedMonth === 'all' ? 'default' : 'outline'} 
+                  size="sm"
+                  onClick={() => setSelectedMonth('all')}
+                  className="min-w-[100px]"
+                >
+                  Tous les mois
+                </Button>
+                {months.map((month, idx) => {
+                  const monthNum = idx === 10 ? 11 : idx === 11 ? 12 : idx + 1;
+                  const readingsInMonth = allReadings.filter(r => r.month === monthNum).length;
+                  return (
+                    <Button 
+                      key={monthNum}
+                      variant={selectedMonth === monthNum ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setSelectedMonth(monthNum)}
+                      className="min-w-[80px]"
+                    >
+                      {month} <Badge variant="secondary" className="ml-1 text-xs">{readingsInMonth}</Badge>
+                    </Button>
+                  );
+                })}
+              </div>
             </div>
 
             <Tabs value={selectedTestament} onValueChange={setSelectedTestament} className="mb-8">
