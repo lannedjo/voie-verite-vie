@@ -71,8 +71,8 @@ const Auth = () => {
       });
     } else {
       toast({
-        title: "Inscription réussie",
-        description: "Bienvenue dans notre communauté !",
+        title: `Bienvenue ${fullName} ! 🙏`,
+        description: "Que Dieu vous bénisse dans votre cheminement spirituel avec 3V.",
       });
       navigate('/');
     }

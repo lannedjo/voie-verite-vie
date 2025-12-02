@@ -142,10 +142,10 @@ const Gallery = () => {
       <Navigation />
       <main className="pt-16">
         {/* Hero Section */}
-        <section className="py-20 bg-gradient-subtle">
+        <section className="py-8 bg-gradient-subtle">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-4xl mx-auto">
-              <h1 className="text-4xl md:text-6xl font-playfair font-bold text-primary mb-6">
+              <h1 className="text-4xl md:text-6xl font-playfair font-bold text-primary mb-4">
                 Notre Galerie
               </h1>
               <p className="text-xl text-muted-foreground leading-relaxed">
@@ -156,7 +156,7 @@ const Gallery = () => {
         </section>
 
         {/* Filters */}
-        <section className="py-12 bg-background">
+        <section className="py-6 bg-background">
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
               <div className="flex flex-wrap gap-3 justify-center mb-8">
@@ -177,7 +177,7 @@ const Gallery = () => {
         </section>
 
         {/* Gallery Grid */}
-        <section className="py-12">
+        <section className="py-6">
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
