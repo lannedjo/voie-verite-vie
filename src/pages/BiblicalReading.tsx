@@ -104,7 +104,22 @@ const BiblicalReading = () => {
     return filtered;
   }, [allReadings, selectedMonth, selectedTestament]);
 
-  const months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+  // Ordre chronologique: Nov 2025, Déc 2025, Jan-Nov 2026
+  const monthsOrder = [
+    { num: 11, name: 'Nov 2025' },
+    { num: 12, name: 'Déc 2025' },
+    { num: 1, name: 'Jan 2026' },
+    { num: 2, name: 'Fév 2026' },
+    { num: 3, name: 'Mar 2026' },
+    { num: 4, name: 'Avr 2026' },
+    { num: 5, name: 'Mai 2026' },
+    { num: 6, name: 'Juin 2026' },
+    { num: 7, name: 'Juil 2026' },
+    { num: 8, name: 'Août 2026' },
+    { num: 9, name: 'Sep 2026' },
+    { num: 10, name: 'Oct 2026' },
+    { num: 11, name: 'Nov 2026' },
+  ];
   const completedCount = userProgress.filter(p => p.completed).length;
   const progressPercentage = Math.round((completedCount / 358) * 100);
 
@@ -114,61 +129,57 @@ const BiblicalReading = () => {
     <div className="min-h-screen">
       <Navigation />
       <main className="pt-16">
-        <section className="py-12 md:py-20 bg-gradient-subtle">
+        <section className="py-6 md:py-10 bg-gradient-subtle">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-4xl mx-auto">
-              <h1 className="text-3xl md:text-6xl font-playfair font-bold text-primary mb-6">Programme de Lecture Biblique</h1>
-              <p className="text-lg md:text-xl text-muted-foreground mb-8">Parcourez les 73 livres de la Bible catholique en 354 jours</p>
+              <h1 className="text-2xl md:text-5xl font-playfair font-bold text-primary mb-3">Programme de Lecture Biblique</h1>
+              <p className="text-base md:text-lg text-muted-foreground">Parcourez les 73 livres de la Bible catholique en 354 jours</p>
             </div>
           </div>
         </section>
 
-        <section className="py-8 md:py-12">
+        <section className="py-4 md:py-6">
           <div className="container mx-auto px-4 max-w-6xl">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <Card><CardHeader className="pb-2"><CardTitle className="text-xs md:text-sm">Progression</CardTitle></CardHeader><CardContent><div className="text-xl md:text-2xl font-bold text-primary">{progressPercentage}%</div></CardContent></Card>
-              <Card><CardHeader className="pb-2"><CardTitle className="text-xs md:text-sm">Complétées</CardTitle></CardHeader><CardContent><div className="text-xl md:text-2xl font-bold text-primary">{completedCount}/358</div></CardContent></Card>
-              <Card><CardHeader className="pb-2"><CardTitle className="text-xs md:text-sm">Affichées</CardTitle></CardHeader><CardContent><div className="text-xl md:text-2xl font-bold text-primary">{filteredReadings.length}</div></CardContent></Card>
-              <Card><CardHeader className="pb-2"><CardTitle className="text-xs md:text-sm">Restants</CardTitle></CardHeader><CardContent><div className="text-xl md:text-2xl font-bold text-primary">{358 - completedCount}</div></CardContent></Card>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+              <Card><CardHeader className="pb-1 pt-3"><CardTitle className="text-xs">Progression</CardTitle></CardHeader><CardContent className="pb-3"><div className="text-lg md:text-xl font-bold text-primary">{progressPercentage}%</div></CardContent></Card>
+              <Card><CardHeader className="pb-1 pt-3"><CardTitle className="text-xs">Complétées</CardTitle></CardHeader><CardContent className="pb-3"><div className="text-lg md:text-xl font-bold text-primary">{completedCount}/358</div></CardContent></Card>
+              <Card><CardHeader className="pb-1 pt-3"><CardTitle className="text-xs">Affichées</CardTitle></CardHeader><CardContent className="pb-3"><div className="text-lg md:text-xl font-bold text-primary">{filteredReadings.length}</div></CardContent></Card>
+              <Card><CardHeader className="pb-1 pt-3"><CardTitle className="text-xs">Restants</CardTitle></CardHeader><CardContent className="pb-3"><div className="text-lg md:text-xl font-bold text-primary">{358 - completedCount}</div></CardContent></Card>
             </div>
 
-            <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-8">
-              <div className="flex flex-wrap justify-center gap-2">
-                <Button 
-                  variant={selectedMonth === 'all' ? 'default' : 'outline'} 
-                  size="sm"
-                  onClick={() => setSelectedMonth('all')}
-                  className="min-w-[100px]"
-                >
-                  Tous les mois
-                </Button>
-                {months.map((month, idx) => {
-                  const monthNum = idx === 10 ? 11 : idx === 11 ? 12 : idx + 1;
-                  const readingsInMonth = allReadings.filter(r => r.month === monthNum).length;
-                  return (
-                    <Button 
-                      key={monthNum}
-                      variant={selectedMonth === monthNum ? 'default' : 'outline'} 
-                      size="sm"
-                      onClick={() => setSelectedMonth(monthNum)}
-                      className="min-w-[80px]"
-                    >
-                      {month} <Badge variant="secondary" className="ml-1 text-xs">{readingsInMonth}</Badge>
-                    </Button>
-                  );
-                })}
-              </div>
+            <div className="flex flex-wrap justify-center gap-2 mb-6">
+              <Button 
+                variant={selectedMonth === 'all' ? 'default' : 'outline'} 
+                size="sm"
+                onClick={() => setSelectedMonth('all')}
+              >
+                Tous
+              </Button>
+              {monthsOrder.map((month) => {
+                const readingsInMonth = allReadings.filter(r => r.month === month.num).length;
+                if (readingsInMonth === 0) return null;
+                return (
+                  <Button 
+                    key={`${month.name}-${month.num}`}
+                    variant={selectedMonth === month.num ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setSelectedMonth(month.num)}
+                  >
+                    {month.name} <Badge variant="secondary" className="ml-1 text-xs">{readingsInMonth}</Badge>
+                  </Button>
+                );
+              })}
             </div>
 
-            <Tabs value={selectedTestament} onValueChange={setSelectedTestament} className="mb-8">
-              <TabsList className="grid w-full max-w-md mx-auto grid-cols-3">
+            <Tabs value={selectedTestament} onValueChange={setSelectedTestament} className="mb-6">
+              <TabsList className="grid w-full max-w-xs mx-auto grid-cols-3">
                 <TabsTrigger value="all">Tous</TabsTrigger>
                 <TabsTrigger value="old">A.T.</TabsTrigger>
                 <TabsTrigger value="new">N.T.</TabsTrigger>
               </TabsList>
             </Tabs>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {filteredReadings.map((reading) => {
                 const completed = userProgress.some(p => p.reading_id === reading.id && p.completed);
                 return (
