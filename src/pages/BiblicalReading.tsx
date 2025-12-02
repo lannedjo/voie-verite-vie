@@ -23,7 +23,7 @@ interface Reading {
 }
 
 const BiblicalReading = () => {
-  const [selectedMonth, setSelectedMonth] = useState<number | 'all'>('all');
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [selectedTestament, setSelectedTestament] = useState('all');
   const [allReadings, setAllReadings] = useState<Reading[]>([]);
   const [userProgress, setUserProgress] = useState<any[]>([]);
@@ -88,9 +88,10 @@ const BiblicalReading = () => {
   const filteredReadings = useMemo(() => {
     let filtered = allReadings;
     
-    // Filtrer par mois
+    // Filtrer par mois+année
     if (selectedMonth !== 'all') {
-      filtered = filtered.filter(r => r.month === selectedMonth);
+      const [month, year] = selectedMonth.split('-').map(Number);
+      filtered = filtered.filter(r => r.month === month && (r as any).year === year);
     }
     
     // Filtrer par testament
@@ -104,21 +105,21 @@ const BiblicalReading = () => {
     return filtered;
   }, [allReadings, selectedMonth, selectedTestament]);
 
-  // Ordre chronologique: Nov 2025, Déc 2025, Jan-Nov 2026
+  // Ordre chronologique: Nov 2025 (1 jour), Déc 2025, Jan-Nov 2026
   const monthsOrder = [
-    { num: 11, name: 'Nov 2025' },
-    { num: 12, name: 'Déc 2025' },
-    { num: 1, name: 'Jan 2026' },
-    { num: 2, name: 'Fév 2026' },
-    { num: 3, name: 'Mar 2026' },
-    { num: 4, name: 'Avr 2026' },
-    { num: 5, name: 'Mai 2026' },
-    { num: 6, name: 'Juin 2026' },
-    { num: 7, name: 'Juil 2026' },
-    { num: 8, name: 'Août 2026' },
-    { num: 9, name: 'Sep 2026' },
-    { num: 10, name: 'Oct 2026' },
-    { num: 11, name: 'Nov 2026' },
+    { key: '11-2025', name: 'Nov 2025' },
+    { key: '12-2025', name: 'Déc 2025' },
+    { key: '1-2026', name: 'Jan 2026' },
+    { key: '2-2026', name: 'Fév 2026' },
+    { key: '3-2026', name: 'Mar 2026' },
+    { key: '4-2026', name: 'Avr 2026' },
+    { key: '5-2026', name: 'Mai 2026' },
+    { key: '6-2026', name: 'Juin 2026' },
+    { key: '7-2026', name: 'Juil 2026' },
+    { key: '8-2026', name: 'Août 2026' },
+    { key: '9-2026', name: 'Sep 2026' },
+    { key: '10-2026', name: 'Oct 2026' },
+    { key: '11-2026', name: 'Nov 2026' },
   ];
   const completedCount = userProgress.filter(p => p.completed).length;
   const progressPercentage = Math.round((completedCount / 358) * 100);
@@ -156,14 +157,15 @@ const BiblicalReading = () => {
                 Tous
               </Button>
               {monthsOrder.map((month) => {
-                const readingsInMonth = allReadings.filter(r => r.month === month.num).length;
+                const [m, y] = month.key.split('-').map(Number);
+                const readingsInMonth = allReadings.filter(r => r.month === m && (r as any).year === y).length;
                 if (readingsInMonth === 0) return null;
                 return (
                   <Button 
-                    key={`${month.name}-${month.num}`}
-                    variant={selectedMonth === month.num ? 'default' : 'outline'} 
+                    key={month.key}
+                    variant={selectedMonth === month.key ? 'default' : 'outline'} 
                     size="sm"
-                    onClick={() => setSelectedMonth(month.num)}
+                    onClick={() => setSelectedMonth(month.key)}
                   >
                     {month.name} <Badge variant="secondary" className="ml-1 text-xs">{readingsInMonth}</Badge>
                   </Button>
