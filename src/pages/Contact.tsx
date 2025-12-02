@@ -87,10 +87,10 @@ const Contact = () => {
       <Navigation />
       <main className="pt-16">
         {/* Hero Section */}
-        <section className="py-20 bg-gradient-subtle">
+        <section className="py-8 bg-gradient-subtle">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-4xl mx-auto">
-              <h1 className="text-4xl md:text-6xl font-playfair font-bold text-primary mb-6">
+              <h1 className="text-4xl md:text-6xl font-playfair font-bold text-primary mb-4">
                 Contactez-nous
               </h1>
               <p className="text-xl text-muted-foreground leading-relaxed">
@@ -100,7 +100,7 @@ const Contact = () => {
           </div>
         </section>
 
-        <section className="py-20">
+        <section className="py-8">
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
               <div className="grid lg:grid-cols-2 gap-12">

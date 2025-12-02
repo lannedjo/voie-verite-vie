@@ -3,18 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import Navigation from '@/components/Navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Users, BookOpen, MessageSquare } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Shield, LayoutDashboard, Users, BookOpen, MessageSquare, Brain, Award, BookHeart } from 'lucide-react';
+import { AdminDashboard } from '@/components/admin/AdminDashboard';
+import { AdminUsers } from '@/components/admin/AdminUsers';
+import { AdminMessages } from '@/components/admin/AdminMessages';
+import { AdminReadings } from '@/components/admin/AdminReadings';
+import { AdminQuizzes } from '@/components/admin/AdminQuizzes';
+import { AdminChallenges } from '@/components/admin/AdminChallenges';
+import { AdminLectioDivina } from '@/components/admin/AdminLectioDivina';
 
 const Admin = () => {
   const { user, loading, isAdmin } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState({
-    users: 0,
-    readings: 0,
-    messages: 0,
-  });
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -22,156 +23,93 @@ const Admin = () => {
     }
   }, [user, loading, isAdmin, navigate]);
 
-  useEffect(() => {
-    if (user && isAdmin) {
-      loadStats();
-    }
-  }, [user, isAdmin]);
-
-  const loadStats = async () => {
-    try {
-      const [usersResult, readingsResult, messagesResult] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('biblical_readings').select('id', { count: 'exact', head: true }),
-        supabase.from('contact_messages').select('id', { count: 'exact', head: true }),
-      ]);
-
-      setStats({
-        users: usersResult.count || 0,
-        readings: readingsResult.count || 0,
-        messages: messagesResult.count || 0,
-      });
-    } catch (error) {
-      console.error('Error loading stats:', error);
-    }
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/30">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Chargement...</p>
+        </div>
       </div>
     );
   }
 
+  if (!isAdmin) {
+    return null;
+  }
+
+  const tabs = [
+    { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
+    { id: 'users', label: 'Utilisateurs', icon: Users },
+    { id: 'readings', label: 'Lectures', icon: BookOpen },
+    { id: 'messages', label: 'Messages', icon: MessageSquare },
+    { id: 'quizzes', label: 'Quiz', icon: Brain },
+    { id: 'challenges', label: 'Défis', icon: Award },
+    { id: 'lectio', label: 'Lectio Divina', icon: BookHeart },
+  ];
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       <Navigation />
       <main className="pt-16 pb-8 px-4">
         <div className="container mx-auto max-w-7xl">
-          <div className="flex items-center gap-3 mb-8">
-            <Shield className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-playfair font-bold">Administration</h1>
+          {/* Header */}
+          <div className="flex items-center gap-4 mb-8 pt-4">
+            <div className="bg-primary/10 p-3 rounded-xl">
+              <Shield className="w-8 h-8 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-playfair font-bold text-primary">Administration</h1>
+              <p className="text-muted-foreground">Gérez votre plateforme 3V</p>
+            </div>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Utilisateurs</CardTitle>
-                <Users className="w-4 h-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.users}</div>
-              </CardContent>
-            </Card>
+          {/* Tabs Navigation */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <div className="overflow-x-auto pb-2">
+              <TabsList className="inline-flex h-auto p-1 bg-muted/50 rounded-xl">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <TabsTrigger
+                      key={tab.id}
+                      value={tab.id}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap"
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span className="hidden md:inline">{tab.label}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </div>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Lectures bibliques</CardTitle>
-                <BookOpen className="w-4 h-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.readings}</div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Messages de contact</CardTitle>
-                <MessageSquare className="w-4 h-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.messages}</div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Management Tabs */}
-          <Tabs defaultValue="readings" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="readings">Lectures bibliques</TabsTrigger>
-              <TabsTrigger value="users">Utilisateurs</TabsTrigger>
-              <TabsTrigger value="messages">Messages</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="readings" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Gestion des lectures bibliques</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    Accédez à la base de données pour gérer les lectures bibliques.
-                  </p>
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.open('https://lovable.dev', '_blank');
-                    }}
-                    className="text-primary hover:underline"
-                  >
-                    Ouvrir la base de données
-                  </a>
-                </CardContent>
-              </Card>
+            <TabsContent value="dashboard" className="mt-6">
+              <AdminDashboard />
             </TabsContent>
 
-            <TabsContent value="users" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Gestion des utilisateurs</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    Accédez à la base de données pour gérer les utilisateurs et leurs rôles.
-                  </p>
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.open('https://lovable.dev', '_blank');
-                    }}
-                    className="text-primary hover:underline"
-                  >
-                    Ouvrir la base de données
-                  </a>
-                </CardContent>
-              </Card>
+            <TabsContent value="users" className="mt-6">
+              <AdminUsers />
             </TabsContent>
 
-            <TabsContent value="messages" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Messages de contact</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    Accédez à la base de données pour consulter les messages de contact.
-                  </p>
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.open('https://lovable.dev', '_blank');
-                    }}
-                    className="text-primary hover:underline"
-                  >
-                    Ouvrir la base de données
-                  </a>
-                </CardContent>
-              </Card>
+            <TabsContent value="readings" className="mt-6">
+              <AdminReadings />
+            </TabsContent>
+
+            <TabsContent value="messages" className="mt-6">
+              <AdminMessages />
+            </TabsContent>
+
+            <TabsContent value="quizzes" className="mt-6">
+              <AdminQuizzes />
+            </TabsContent>
+
+            <TabsContent value="challenges" className="mt-6">
+              <AdminChallenges />
+            </TabsContent>
+
+            <TabsContent value="lectio" className="mt-6">
+              <AdminLectioDivina />
             </TabsContent>
           </Tabs>
         </div>
