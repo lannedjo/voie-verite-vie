@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import { Calendar, BookOpen, CheckCircle, ChevronLeft, ChevronRight, Star, Target } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -158,17 +159,25 @@ const BiblicalReading = () => {
               </Button>
               {monthsOrder.map((month) => {
                 const [m, y] = month.key.split('-').map(Number);
-                const readingsInMonth = allReadings.filter(r => r.month === m && (r as any).year === y).length;
+                const monthReadings = allReadings.filter(r => r.month === m && (r as any).year === y);
+                const readingsInMonth = monthReadings.length;
                 if (readingsInMonth === 0) return null;
+                const completedInMonth = monthReadings.filter(r => 
+                  userProgress.some(p => p.reading_id === r.id && p.completed)
+                ).length;
+                const monthProgress = Math.round((completedInMonth / readingsInMonth) * 100);
                 return (
-                  <Button 
-                    key={month.key}
-                    variant={selectedMonth === month.key ? 'default' : 'outline'} 
-                    size="sm"
-                    onClick={() => setSelectedMonth(month.key)}
-                  >
-                    {month.name} <Badge variant="secondary" className="ml-1 text-xs">{readingsInMonth}</Badge>
-                  </Button>
+                  <div key={month.key} className="flex flex-col items-center gap-1">
+                    <Button 
+                      variant={selectedMonth === month.key ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setSelectedMonth(month.key)}
+                      className="w-full"
+                    >
+                      {month.name} <Badge variant="secondary" className="ml-1 text-xs">{completedInMonth}/{readingsInMonth}</Badge>
+                    </Button>
+                    <Progress value={monthProgress} className="w-full h-1.5" />
+                  </div>
                 );
               })}
             </div>
