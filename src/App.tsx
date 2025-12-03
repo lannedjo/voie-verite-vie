@@ -17,6 +17,7 @@ import Install from "./pages/Install";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import AIChat from "./pages/AIChat";
+import PrayerForum from "./pages/PrayerForum";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => {
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/ai-chat" element={<AIChat />} />
+            <Route path="/prayer-forum" element={<PrayerForum />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
