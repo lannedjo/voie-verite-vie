@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_registrations: {
+        Row: {
+          activity_name: string
+          created_at: string
+          id: string
+          phone_country_code: string
+          phone_number: string
+          user_id: string
+        }
+        Insert: {
+          activity_name: string
+          created_at?: string
+          id?: string
+          phone_country_code: string
+          phone_number: string
+          user_id: string
+        }
+        Update: {
+          activity_name?: string
+          created_at?: string
+          id?: string
+          phone_country_code?: string
+          phone_number?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_conversations: {
         Row: {
           created_at: string | null
@@ -142,26 +169,209 @@ export type Database = {
         }
         Relationships: []
       }
+      donations: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string | null
+          donor_email: string | null
+          donor_name: string | null
+          id: string
+          message: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string | null
+          donor_email?: string | null
+          donor_name?: string | null
+          id?: string
+          message?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string | null
+          donor_email?: string | null
+          donor_name?: string | null
+          id?: string
+          message?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      prayer_requests: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_anonymous: boolean | null
+          prayer_count: number | null
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean | null
+          prayer_count?: number | null
+          title: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean | null
+          prayer_count?: number | null
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      prayer_responses: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          prayer_request_id: string
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          prayer_request_id: string
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          prayer_request_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prayer_responses_prayer_request_id_fkey"
+            columns: ["prayer_request_id"]
+            isOneToOne: false
+            referencedRelation: "prayer_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
           email: string
           full_name: string | null
           id: string
+          phone_country_code: string | null
+          phone_number: string | null
         }
         Insert: {
           created_at?: string | null
           email: string
           full_name?: string | null
           id: string
+          phone_country_code?: string | null
+          phone_number?: string | null
         }
         Update: {
           created_at?: string | null
           email?: string
           full_name?: string | null
           id?: string
+          phone_country_code?: string | null
+          phone_number?: string | null
         }
         Relationships: []
+      }
+      quizzes: {
+        Row: {
+          correct_answer: string | null
+          created_at: string
+          difficulty: string
+          id: string
+          options: Json | null
+          question: string
+          question_type: string
+          reading_id: string | null
+        }
+        Insert: {
+          correct_answer?: string | null
+          created_at?: string
+          difficulty: string
+          id?: string
+          options?: Json | null
+          question: string
+          question_type: string
+          reading_id?: string | null
+        }
+        Update: {
+          correct_answer?: string | null
+          created_at?: string
+          difficulty?: string
+          id?: string
+          options?: Json | null
+          question?: string
+          question_type?: string
+          reading_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quizzes_reading_id_fkey"
+            columns: ["reading_id"]
+            isOneToOne: false
+            referencedRelation: "biblical_readings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_quiz_responses: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          is_correct: boolean | null
+          quiz_id: string
+          user_id: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          quiz_id: string
+          user_id: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          quiz_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_quiz_responses_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_reading_progress: {
         Row: {
