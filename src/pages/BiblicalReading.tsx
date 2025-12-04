@@ -6,16 +6,18 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, BookOpen, CheckCircle, ChevronLeft, ChevronRight, Star, Target } from 'lucide-react';
+import { Calendar, BookOpen, CheckCircle, Brain } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
+import { QuizModal } from '@/components/QuizModal';
 
 interface Reading {
   id: string;
   day_number: number;
   date: string;
   month: number;
+  year?: number;
   books: string;
   chapters: string;
   chapters_count: number;
@@ -29,6 +31,8 @@ const BiblicalReading = () => {
   const [allReadings, setAllReadings] = useState<Reading[]>([]);
   const [userProgress, setUserProgress] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [quizReading, setQuizReading] = useState<Reading | null>(null);
+  const [showQuiz, setShowQuiz] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -67,35 +71,50 @@ const BiblicalReading = () => {
     }
   };
 
-  const toggleReadingComplete = async (readingId: string) => {
+  const toggleReadingComplete = async (reading: Reading) => {
     if (!user) return navigate('/auth');
+    
+    const existing = userProgress.find(p => p.reading_id === reading.id);
+    const wasCompleted = existing?.completed;
+    
     try {
-      const existing = userProgress.find(p => p.reading_id === readingId);
       if (existing) {
         await supabase.from('user_reading_progress')
           .update({ completed: !existing.completed, completed_at: !existing.completed ? new Date().toISOString() : null })
-          .eq('user_id', user.id).eq('reading_id', readingId);
+          .eq('user_id', user.id).eq('reading_id', reading.id);
       } else {
         await supabase.from('user_reading_progress')
-          .insert({ user_id: user.id, reading_id: readingId, completed: true, completed_at: new Date().toISOString() });
+          .insert({ user_id: user.id, reading_id: reading.id, completed: true, completed_at: new Date().toISOString() });
       }
+      
       await loadUserProgress();
-      toast({ title: "Progression mise à jour" });
+      
+      // Si on vient de marquer comme lu, proposer le quiz
+      if (!wasCompleted) {
+        setQuizReading(reading);
+        setShowQuiz(true);
+        toast({ title: "Lecture complétée !", description: "Testez vos connaissances avec un quiz." });
+      } else {
+        toast({ title: "Progression mise à jour" });
+      }
     } catch (error) {
       toast({ title: "Erreur", description: "Impossible de mettre à jour", variant: "destructive" });
     }
   };
 
+  const openQuizForReading = (reading: Reading) => {
+    setQuizReading(reading);
+    setShowQuiz(true);
+  };
+
   const filteredReadings = useMemo(() => {
     let filtered = allReadings;
     
-    // Filtrer par mois+année
     if (selectedMonth !== 'all') {
       const [month, year] = selectedMonth.split('-').map(Number);
       filtered = filtered.filter(r => r.month === month && (r as any).year === year);
     }
     
-    // Filtrer par testament
     if (selectedTestament !== 'all') {
       const ntBooks = ['Matthieu', 'Marc', 'Luc', 'Jean', 'Actes', 'Romains', 'Corinthiens', 'Galates', 'Éphésiens', 'Philippiens', 'Colossiens', 'Thessaloniciens', 'Timothée', 'Tite', 'Philémon', 'Hébreux', 'Jacques', 'Pierre', 'Jude', 'Apocalypse'];
       filtered = selectedTestament === 'old' 
@@ -106,7 +125,6 @@ const BiblicalReading = () => {
     return filtered;
   }, [allReadings, selectedMonth, selectedTestament]);
 
-  // Ordre chronologique: Nov 2025 (1 jour), Déc 2025, Jan-Nov 2026
   const monthsOrder = [
     { key: '11-2025', name: 'Nov 2025' },
     { key: '12-2025', name: 'Déc 2025' },
@@ -122,6 +140,7 @@ const BiblicalReading = () => {
     { key: '10-2026', name: 'Oct 2026' },
     { key: '11-2026', name: 'Nov 2026' },
   ];
+  
   const completedCount = userProgress.filter(p => p.completed).length;
   const progressPercentage = Math.round((completedCount / 358) * 100);
 
@@ -197,16 +216,46 @@ const BiblicalReading = () => {
                   <Card key={reading.id} className={completed ? 'ring-2 ring-primary/20' : ''}>
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-primary" /><span className="text-sm font-medium text-primary">Jour {reading.day_number}</span></div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-medium text-primary">Jour {reading.day_number}</span>
+                        </div>
+                        {completed && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2"
+                            onClick={() => openQuizForReading(reading)}
+                          >
+                            <Brain className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
-                      <CardTitle className="text-base md:text-lg font-playfair">{new Date(reading.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</CardTitle>
+                      <CardTitle className="text-base md:text-lg font-playfair">
+                        {new Date(reading.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        <div><p className="font-semibold text-primary">{reading.books}</p><p className="text-xs md:text-sm text-muted-foreground">Chapitres {reading.chapters} ({reading.chapters_count} chap.)</p></div>
-                        {reading.comment && <div className="bg-primary/5 rounded-lg p-3"><p className="text-xs italic text-muted-foreground">{reading.comment}</p></div>}
-                        <Button size="sm" variant={completed ? "default" : "outline"} className="w-full text-xs" onClick={() => toggleReadingComplete(reading.id)}>
-                          <CheckCircle className="w-3 h-3 mr-1" />{completed ? "Lu" : "Marquer lu"}
+                        <div>
+                          <p className="font-semibold text-primary">{reading.books}</p>
+                          <p className="text-xs md:text-sm text-muted-foreground">
+                            Chapitres {reading.chapters} ({reading.chapters_count} chap.)
+                          </p>
+                        </div>
+                        {reading.comment && (
+                          <div className="bg-primary/5 rounded-lg p-3">
+                            <p className="text-xs italic text-muted-foreground">{reading.comment}</p>
+                          </div>
+                        )}
+                        <Button 
+                          size="sm" 
+                          variant={completed ? "default" : "outline"} 
+                          className="w-full text-xs" 
+                          onClick={() => toggleReadingComplete(reading)}
+                        >
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          {completed ? "Lu" : "Marquer lu"}
                         </Button>
                       </div>
                     </CardContent>
@@ -217,6 +266,12 @@ const BiblicalReading = () => {
           </div>
         </section>
       </main>
+
+      <QuizModal
+        isOpen={showQuiz}
+        onClose={() => setShowQuiz(false)}
+        reading={quizReading}
+      />
     </div>
   );
 };
