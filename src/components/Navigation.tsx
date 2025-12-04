@@ -13,7 +13,8 @@ import {
   User,
   LogOut,
   Shield,
-  Bot
+  Bot,
+  Heart
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
@@ -39,6 +40,7 @@ const Navigation = () => {
     { name: 'À propos', href: '/about', icon: BookOpen },
     { name: 'Activités', href: '/activities', icon: Calendar },
     { name: 'Lecture Biblique', href: '/biblical-reading', icon: BookOpen },
+    { name: 'Forum Prière', href: '/prayer-forum', icon: Heart },
     { name: 'Galerie', href: '/gallery', icon: Camera },
     { name: 'FAQ', href: '/faq', icon: HelpCircle },
     { name: 'Contact', href: '/contact', icon: Mail },
