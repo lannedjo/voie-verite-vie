@@ -11,42 +11,57 @@ serve(async (req) => {
   }
 
   try {
-    const { books, chapters, dayNumber } = await req.json();
+    const { books, chapters, dayNumber, difficulty } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log(`Generating quiz for: ${books}, chapters ${chapters}, day ${dayNumber}`);
+    console.log(`Generating ${difficulty} quiz for: ${books}, chapters ${chapters}, day ${dayNumber}`);
+
+    const difficultyInstructions = {
+      easy: "Questions de niveau débutant/facile. Questions simples sur les faits principaux, les personnages, les événements clés. Pas de questions sur des détails obscurs.",
+      medium: "Questions de niveau intermédiaire. Questions sur les thèmes, les leçons morales, les liens entre passages. Quelques questions sur des références de versets.",
+      hard: "Questions de niveau difficile. Questions approfondies sur l'exégèse, les références de versets précis, les parallèles bibliques, le contexte historique.",
+      expert: "Questions de niveau expert/super difficile. Questions très complexes sur les nuances théologiques, les références croisées avec d'autres livres, l'analyse littéraire, les termes originaux hébreux/grecs."
+    };
 
     const systemPrompt = `Tu es un expert en théologie catholique et en études bibliques. Tu génères des quiz éducatifs sur la Bible.
-Tu dois créer exactement 10 questions au total: 5 questions à choix multiples et 5 questions à réponse ouverte.
+Tu dois créer exactement 25 questions au total: 15 questions à choix multiples et 10 questions à réponse ouverte.
 Les questions doivent porter sur le contenu spécifique des livres et chapitres mentionnés.
-Varie la difficulté: 2 faciles, 3 moyennes, 2 difficiles pour chaque type.
+${difficultyInstructions[difficulty as keyof typeof difficultyInstructions] || difficultyInstructions.easy}
+
+IMPORTANT pour les questions:
+- Inclus des questions sur des références de versets précis (ex: "Dans quel verset trouve-t-on...")
+- Pose des questions sur les personnages, lieux, événements
+- Inclus des questions d'interprétation et d'exégèse
+- Les questions doivent être variées et couvrir tout le passage
+
 Réponds UNIQUEMENT en JSON valide, sans commentaires ni texte supplémentaire.`;
 
-    const userPrompt = `Génère un quiz sur ${books}, chapitres ${chapters}.
+    const userPrompt = `Génère un quiz de niveau ${difficulty} sur ${books}, chapitres ${chapters}.
 
 Format JSON requis:
 {
   "multipleChoice": [
     {
-      "question": "La question",
+      "question": "La question avec référence de verset si applicable",
       "options": ["Option A", "Option B", "Option C", "Option D"],
       "correctIndex": 0,
-      "difficulty": "easy|medium|hard",
-      "explanation": "Explication courte"
+      "explanation": "Explication détaillée avec référence biblique"
     }
   ],
   "openEnded": [
     {
-      "question": "La question ouverte",
-      "difficulty": "easy|medium|hard",
-      "sampleAnswer": "Une réponse attendue"
+      "question": "La question ouverte demandant réflexion ou explication",
+      "keyPoints": ["Point clé 1", "Point clé 2", "Point clé 3"],
+      "sampleAnswer": "Une réponse complète et détaillée attendue"
     }
   ]
-}`;
+}
+
+Génère exactement 15 questions à choix multiples et 10 questions à réponse ouverte.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -91,7 +106,6 @@ Format JSON requis:
 
     console.log("AI response received, parsing...");
 
-    // Parse JSON from response (handle possible markdown code blocks)
     let quizData;
     try {
       let jsonStr = content.trim();

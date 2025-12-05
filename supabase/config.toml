@@ -1,5 +1,8 @@
 project_id = "kaddsojhnkyfavaulrfc"
 
+[functions.evaluate-answer]
+verify_jwt = false
+
 [functions]
 enabled = true
 
