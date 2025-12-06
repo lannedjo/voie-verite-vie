@@ -43,32 +43,21 @@ const BiblicalReading = () => {
   }, [user]);
 
   const loadAllReadings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('biblical_readings')
-        .select('id, day_number, date, month, year, books, chapters, chapters_count, type, comment')
-        .order('day_number');
-      if (error) throw error;
-      setAllReadings(data || []);
-    } catch (error) {
-      console.error('Error loading readings:', error);
-    } finally {
-      setLoading(false);
-    }
+    const { data } = await supabase
+      .from('biblical_readings')
+      .select('id, day_number, date, month, year, books, chapters, chapters_count, type, comment')
+      .order('day_number');
+    setAllReadings(data || []);
+    setLoading(false);
   };
 
   const loadUserProgress = async () => {
     if (!user) return;
-    try {
-      const { data, error } = await supabase
-        .from('user_reading_progress')
-        .select('reading_id, completed')
-        .eq('user_id', user.id);
-      if (error) throw error;
-      setUserProgress(data || []);
-    } catch (error) {
-      console.error('Error loading progress:', error);
-    }
+    const { data } = await supabase
+      .from('user_reading_progress')
+      .select('reading_id, completed')
+      .eq('user_id', user.id);
+    setUserProgress(data || []);
   };
 
   const toggleReadingComplete = async (reading: Reading) => {
@@ -93,12 +82,10 @@ const BiblicalReading = () => {
       if (!wasCompleted) {
         setQuizReading(reading);
         setShowQuiz(true);
-        toast({ title: "Lecture complétée !", description: "Testez vos connaissances avec un quiz." });
-      } else {
-        toast({ title: "Progression mise à jour" });
+        toast({ title: "Lecture complétée !" });
       }
-    } catch (error) {
-      toast({ title: "Erreur", description: "Impossible de mettre à jour", variant: "destructive" });
+    } catch {
+      // Silently handle error
     }
   };
 

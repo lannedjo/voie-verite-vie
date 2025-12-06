@@ -117,16 +117,10 @@ export const QuizModal = memo(({ isOpen, onClose, reading }: QuizModalProps) => 
       }
 
       setQuizData(data);
-    } catch (error) {
-      console.error('Error generating quiz:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de générer le quiz. Réessayez.",
-        variant: "destructive"
-      });
-      setSelectedDifficulty(null);
-    } finally {
       setLoading(false);
+    } catch {
+      setLoading(false);
+      setSelectedDifficulty(null);
     }
   }, [reading, toast]);
 
@@ -266,10 +260,9 @@ export const QuizModal = memo(({ isOpen, onClose, reading }: QuizModalProps) => 
 
         {/* Loading */}
         {loading && (
-          <div className="text-center py-12">
-            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground font-semibold">VOIE, VÉRITÉ, VIE vous propose ces 25 questions</p>
-            <p className="text-sm text-muted-foreground mt-2">Préparation en cours...</p>
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-3"></div>
+            <p className="text-primary font-semibold">VOIE, VÉRITÉ, VIE vous propose 25 questions</p>
           </div>
         )}
 

@@ -32,14 +32,7 @@ export const AIAssistant = () => {
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          title: "Non authentifié",
-          description: "Veuillez vous connecter pour utiliser l'assistant IA",
-          variant: "destructive",
-        });
-        return;
-      }
+      if (!session) return;
 
       const response = await fetch(chatUrl, {
         method: 'POST',
@@ -50,27 +43,7 @@ export const AIAssistant = () => {
         body: JSON.stringify({ messages: [...allMessages, userMessage] }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        
-        if (response.status === 429) {
-          toast({
-            title: "Limite atteinte",
-            description: "Trop de requêtes, veuillez réessayer plus tard.",
-            variant: "destructive",
-          });
-          return;
-        }
-        if (response.status === 402) {
-          toast({
-            title: "Crédits insuffisants",
-            description: "Crédits IA insuffisants.",
-            variant: "destructive",
-          });
-          return;
-        }
-        throw new Error(errorData.error || "Erreur lors de la connexion à l'IA");
-      }
+      if (!response.ok) return;
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
@@ -118,28 +91,14 @@ export const AIAssistant = () => {
           }
         }
       }
-    } catch (error) {
-      console.error('Error streaming chat:', error);
-      toast({
-        title: "Erreur de connexion",
-        description: error instanceof Error ? error.message : "Impossible de communiquer avec l'assistant IA. Vérifiez votre connexion internet.",
-        variant: "destructive",
-      });
+    } catch {
+      // Silent error handling
     }
   }, [toast]);
 
   const handleSend = useCallback(async (text?: string) => {
     const messageText = text || input;
-    if (!messageText.trim() || isLoading) return;
-
-    if (!user) {
-      toast({
-        title: "Connexion requise",
-        description: "Veuillez vous connecter pour utiliser l'assistant IA",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!messageText.trim() || isLoading || !user) return;
 
     const userMessage: Message = { role: 'user', content: messageText };
     const currentMessages = [...messages];
