@@ -46,12 +46,12 @@ const BiblicalReading = () => {
     try {
       const { data, error } = await supabase
         .from('biblical_readings')
-        .select('*')
+        .select('id, day_number, date, month, year, books, chapters, chapters_count, type, comment')
         .order('day_number');
       if (error) throw error;
       setAllReadings(data || []);
     } catch (error) {
-      toast({ title: "Erreur", description: "Impossible de charger les lectures", variant: "destructive" });
+      console.error('Error loading readings:', error);
     } finally {
       setLoading(false);
     }
@@ -144,7 +144,14 @@ const BiblicalReading = () => {
   const completedCount = userProgress.filter(p => p.completed).length;
   const progressPercentage = Math.round((completedCount / 358) * 100);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-2"></div>
+        <p className="text-sm text-muted-foreground">Chargement...</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen">
