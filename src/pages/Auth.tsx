@@ -48,25 +48,53 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-
-    const { error } = await signIn(email, password);
-
-    if (error) {
+    if (loading) return;
+    
+    if (!email.trim() || !password.trim()) {
       toast({
-        title: "Erreur de connexion",
-        description: error.message,
+        title: "Champs requis",
+        description: "Veuillez remplir tous les champs",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Connexion réussie",
-        description: "Bienvenue !",
-      });
-      navigate('/');
+      return;
     }
+    
+    setLoading(true);
 
-    setLoading(false);
+    try {
+      const { error } = await signIn(email.trim(), password);
+
+      if (error) {
+        let errorMessage = "Erreur de connexion";
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = "Email ou mot de passe incorrect";
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = "Veuillez confirmer votre email";
+        } else if (error.message.includes('fetch')) {
+          errorMessage = "Problème de connexion internet. Vérifiez votre connexion.";
+        }
+        
+        toast({
+          title: "Erreur",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Connexion réussie",
+          description: "Bienvenue !",
+        });
+        navigate('/');
+      }
+    } catch (err) {
+      toast({
+        title: "Erreur de connexion",
+        description: "Problème de réseau. Vérifiez votre connexion internet.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -101,23 +129,38 @@ const Auth = () => {
 
     setLoading(true);
 
-    const { error } = await signUp(email, password, fullName);
+    try {
+      const { error } = await signUp(email.trim(), password, fullName.trim());
 
-    if (error) {
+      if (error) {
+        let errorMessage = error.message;
+        if (error.message.includes('fetch')) {
+          errorMessage = "Problème de connexion internet. Vérifiez votre connexion.";
+        } else if (error.message.includes('already registered')) {
+          errorMessage = "Cet email est déjà utilisé";
+        }
+        
+        toast({
+          title: "Erreur d'inscription",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: `Bienvenue ${fullName} ! 🙏`,
+          description: "Que Dieu vous bénisse dans votre cheminement spirituel avec 3V.",
+        });
+        navigate('/');
+      }
+    } catch (err) {
       toast({
         title: "Erreur d'inscription",
-        description: error.message,
+        description: "Problème de réseau. Vérifiez votre connexion internet.",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: `Bienvenue ${fullName} ! 🙏`,
-        description: "Que Dieu vous bénisse dans votre cheminement spirituel avec 3V.",
-      });
-      navigate('/');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (

@@ -268,8 +268,8 @@ export const QuizModal = memo(({ isOpen, onClose, reading }: QuizModalProps) => 
         {loading && (
           <div className="text-center py-12">
             <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">Génération de 25 questions...</p>
-            <p className="text-sm text-muted-foreground mt-2">L'IA crée des questions uniques pour vous</p>
+            <p className="text-muted-foreground font-semibold">VOIE, VÉRITÉ, VIE vous propose ces 25 questions</p>
+            <p className="text-sm text-muted-foreground mt-2">Préparation en cours...</p>
           </div>
         )}
 
