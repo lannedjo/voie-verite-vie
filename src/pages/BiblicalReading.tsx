@@ -13,6 +13,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { QuizModal } from '@/components/QuizModal';
 import { BibleBookSelector } from '@/components/BibleBookSelector';
 import { logger } from '@/lib/logger';
+import { groupReadingsByDay, GroupedReading } from '@/lib/reading-grouper';
 
 interface Reading {
   id: string;
@@ -129,6 +130,42 @@ const BiblicalReading = () => {
   const openQuizForReading = (reading: Reading) => {
     setQuizReading(reading);
     setShowQuiz(true);
+  };
+
+  const toggleGroupComplete = async (group: GroupedReading) => {
+    if (!user) return navigate('/auth');
+    
+    // Marquer tous les jours du groupe comme complétés
+    for (const reading of group.readings) {
+      try {
+        const existing = userProgress.find(p => p.reading_id === reading.id);
+        
+        if (existing) {
+          if (!existing.completed) {
+            // Marquer comme complété
+            await supabase.from('user_reading_progress')
+              .update({ completed: true, completed_at: new Date().toISOString() })
+              .eq('user_id', user.id).eq('reading_id', reading.id);
+          }
+        } else {
+          // Créer une entrée
+          await supabase.from('user_reading_progress')
+            .insert({ 
+              user_id: user.id, 
+              reading_id: reading.id, 
+              completed: true, 
+              completed_at: new Date().toISOString() 
+            });
+        }
+      } catch (error) {
+        console.error(`Erreur pour le jour ${reading.day_number}:`, error);
+      }
+    }
+    
+    await loadUserProgress();
+    setQuizReading(group.readings[0]);
+    setShowQuiz(true);
+    toast({ title: "Groupe de lectures marqué comme complété !" });
   };
 
   const filteredReadings = useMemo(() => {
@@ -253,60 +290,78 @@ const BiblicalReading = () => {
                   </TabsList>
                 </Tabs>
 
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                  {filteredReadings.map((reading) => {
-                    const completed = userProgress.some(p => p.reading_id === reading.id && p.completed);
-                    return (
-                      <Card key={reading.id} className={completed ? 'ring-2 ring-primary/20' : ''}>
-                        <CardHeader className="pb-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4 text-primary" />
-                              <span className="text-sm font-medium text-primary">Jour {reading.day_number}</span>
-                            </div>
-                            {completed && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2"
-                                onClick={() => openQuizForReading(reading)}
-                              >
-                                <Brain className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                          <CardTitle className="text-base md:text-lg font-playfair">
-                            {new Date(reading.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-3">
-                            <div>
-                              <p className="font-semibold text-primary">{reading.books}</p>
-                              <p className="text-xs md:text-sm text-muted-foreground">
-                                Chapitres {reading.chapters} ({reading.chapters_count} chap.)
-                              </p>
-                            </div>
-                            {reading.comment && (
-                              <div className="bg-primary/5 rounded-lg p-3">
-                                <p className="text-xs italic text-muted-foreground">{reading.comment}</p>
+                {/* Afficher les lectures groupées par jour */}
+                {useMemo(() => {
+                  const groupedReadings = groupReadingsByDay(filteredReadings);
+                  
+                  return (
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                      {groupedReadings.map((group: GroupedReading) => {
+                        // Vérifier si TOUS les jours du groupe sont complétés
+                        const allCompleted = group.readings.every(r =>
+                          userProgress.some(p => p.reading_id === r.id && p.completed)
+                        );
+                        
+                        // Vérifier si AU MOINS UN jour est complété
+                        const anyCompleted = group.readings.some(r =>
+                          userProgress.some(p => p.reading_id === r.id && p.completed)
+                        );
+
+                        return (
+                          <Card key={group.groupId} className={allCompleted ? 'ring-2 ring-primary/20' : ''}>
+                            <CardHeader className="pb-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="w-4 h-4 text-primary" />
+                                  <span className="text-sm font-medium text-primary">
+                                    Jour{group.startDay !== group.endDay ? `s ${group.startDay}-${group.endDay}` : ` ${group.startDay}`}
+                                  </span>
+                                </div>
+                                {anyCompleted && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 px-2"
+                                    onClick={() => openQuizForReading(group.readings[0])}
+                                  >
+                                    <Brain className="w-4 h-4" />
+                                  </Button>
+                                )}
                               </div>
-                            )}
-                            <Button 
-                              size="sm" 
-                              variant={completed ? "default" : "outline"} 
-                              className="w-full text-xs" 
-                              onClick={() => toggleReadingComplete(reading)}
-                            >
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              {completed ? "Lu" : "Marquer lu"}
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
+                              <CardTitle className="text-base md:text-lg font-playfair">
+                                {new Date(group.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-3">
+                                <div>
+                                  <p className="font-semibold text-primary">{group.label}</p>
+                                  <p className="text-xs md:text-sm text-muted-foreground">
+                                    {group.totalChapters} chapitre{group.totalChapters > 1 ? 's' : ''}
+                                  </p>
+                                </div>
+                                {group.comments.length > 0 && (
+                                  <div className="bg-primary/5 rounded-lg p-3">
+                                    <p className="text-xs italic text-muted-foreground">{group.comments[0]}</p>
+                                  </div>
+                                )}
+                                <Button 
+                                  size="sm" 
+                                  variant={allCompleted ? "default" : "outline"} 
+                                  className="w-full text-xs" 
+                                  onClick={() => toggleGroupComplete(group)}
+                                >
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  {allCompleted ? "Complété" : "Marquer tout lu"}
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  );
+                }, [filteredReadings, userProgress])}
               </TabsContent>
 
               <TabsContent value="books" className="space-y-6">
