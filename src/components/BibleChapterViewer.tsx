@@ -117,12 +117,12 @@ export const BibleChapterViewer = ({
   if (loading) {
     return (
       <Card className="w-full bg-card/50 backdrop-blur-sm border-primary/20">
-        <CardHeader>
+        <CardHeader className="space-y-0 pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-2xl">
               {bookName} {chapterNumber}
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={onBack}>
+            <Button variant="ghost" size="sm" onClick={onBack} title="Retour">
               <ArrowLeft className="w-4 h-4" />
             </Button>
           </div>
@@ -137,12 +137,12 @@ export const BibleChapterViewer = ({
   if (error) {
     return (
       <Card className="w-full bg-card/50 backdrop-blur-sm border-primary/20">
-        <CardHeader>
+        <CardHeader className="space-y-0 pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-2xl">
               {bookName} {chapterNumber}
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={onBack}>
+            <Button variant="ghost" size="sm" onClick={onBack} title="Retour">
               <ArrowLeft className="w-4 h-4" />
             </Button>
           </div>
@@ -161,60 +161,58 @@ export const BibleChapterViewer = ({
 
   return (
     <Card className="w-full bg-card/50 backdrop-blur-sm border-primary/20">
-      <CardHeader className="space-y-2 pb-3">
+      <CardHeader className="space-y-0 pb-3">
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-2xl">
-              {bookName} {chapterNumber}
-            </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              {abbreviation} {chapterNumber}
-            </p>
-          </div>
-          <Button variant="ghost" size="sm" onClick={onBack}>
+          <CardTitle className="text-2xl">
+            {bookName} {chapterNumber}
+          </CardTitle>
+          <Button variant="ghost" size="sm" onClick={onBack} title="Retour">
             <ArrowLeft className="w-4 h-4" />
           </Button>
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0">
+      <CardContent className="pt-0 px-2 md:px-4">
         {verses.length > 0 && (
-          <ScrollArea className="h-[600px] pr-4">
-            <div className="space-y-1">
+          <ScrollArea className="h-[600px] pr-2 md:pr-4">
+            <div className="space-y-2 md:space-y-1">
               {verses.map((verse, index) => (
-                <div key={verse.number} className="group flex gap-2 py-1">
+                <div key={verse.number} className="flex gap-1 md:gap-2 py-1">
+                  {/* Numéro du verset */}
                   <Badge
                     variant="secondary"
-                    className="h-fit mt-0.5 flex-shrink-0 font-semibold text-xs"
+                    className="h-fit mt-0.5 flex-shrink-0 font-semibold text-xs sticky left-0"
                   >
                     {verse.number}
                   </Badge>
 
-                  <div className="flex-1 min-w-0 flex items-start gap-1">
-                    <p className="text-sm leading-relaxed text-foreground/90 break-words flex-1">
+                  {/* Texte du verset avec justification */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm leading-relaxed text-foreground/90 text-justify">
                       {verse.text}
                     </p>
+                  </div>
 
-                    <div className="flex gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-5 w-5 p-0"
-                        onClick={() => copyToClipboard(verse.text)}
-                        title="Copier ce verset"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-5 w-5 p-0"
-                        onClick={() => shareVerse(verse.number)}
-                        title="Partager ce verset"
-                      >
-                        <Share2 className="w-3 h-3" />
-                      </Button>
-                    </div>
+                  {/* Actions - toujours visibles sur mobile, au hover sur desktop */}
+                  <div className="flex gap-0.5 flex-shrink-0 ml-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-5 w-5 p-0 text-muted-foreground hover:text-primary transition-colors"
+                      onClick={() => copyToClipboard(verse.text)}
+                      title="Copier ce verset"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-5 w-5 p-0 text-muted-foreground hover:text-primary transition-colors"
+                      onClick={() => shareVerse(verse.number)}
+                      title="Partager ce verset"
+                    >
+                      <Share2 className="w-3 h-3" />
+                    </Button>
                   </div>
                 </div>
               ))}

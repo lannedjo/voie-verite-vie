@@ -142,23 +142,31 @@ export const QuizModal = memo(({ isOpen, onClose, reading }: QuizModalProps) => 
         }
       });
 
+      // Arrêter le timer et mettre à 100% immédiatement
       clearInterval(progressInterval);
-      setGenerationProgress(100); // Sauter directement à 100% à la fin
 
       if (error) throw error;
       
-      if (data.error) {
+      if (data && data.error) {
         throw new Error(data.error);
       }
 
       // Afficher le quiz immédiatement quand reçu
-      setQuizData(data);
+      if (data && data.multipleChoice && data.openEnded) {
+        setQuizData(data);
+      } else {
+        throw new Error('Format de quiz invalide');
+      }
+
+      // Assurer que la progression atteint 100%
+      setGenerationProgress(100);
       setLoading(false);
     } catch (err) {
       clearInterval(progressInterval);
       setLoading(false);
       setSelectedDifficulty(null);
       setGenerationProgress(0);
+      console.error('Quiz generation error:', err);
       toast({ 
         title: "Erreur", 
         description: "Impossible de générer le quiz. Veuillez réessayer.",

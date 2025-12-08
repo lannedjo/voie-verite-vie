@@ -212,7 +212,7 @@ const BiblicalReading = () => {
                   <Card><CardHeader className="pb-1 pt-3"><CardTitle className="text-xs">Restants</CardTitle></CardHeader><CardContent className="pb-3"><div className="text-lg md:text-xl font-bold text-primary">{358 - completedCount}</div></CardContent></Card>
                 </div>
 
-                <div className="flex flex-wrap justify-center gap-2 mb-6">
+                <div className="flex flex-wrap justify-center gap-2 md:gap-3 mb-6">
                   <Button 
                     variant={selectedMonth === 'all' ? 'default' : 'outline'} 
                     size="sm"

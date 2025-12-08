@@ -119,6 +119,41 @@ Génère exactement 15 questions à choix multiples et 10 questions à réponse 
         jsonStr = jsonStr.slice(0, -3);
       }
       quizData = JSON.parse(jsonStr.trim());
+      
+      // Validation de la structure
+      if (!quizData.multipleChoice || !quizData.openEnded) {
+        throw new Error("Invalid quiz structure");
+      }
+      
+      // Vérifier que chaque question MC a les bonnes données
+      quizData.multipleChoice = quizData.multipleChoice.map((q: any, idx: number) => {
+        if (!q.options || q.options.length < 2) {
+          throw new Error(`Question ${idx} missing options`);
+        }
+        if (q.correctIndex === undefined || q.correctIndex < 0 || q.correctIndex >= q.options.length) {
+          throw new Error(`Question ${idx} has invalid correctIndex`);
+        }
+        
+        // Mélanger les réponses SAUF si correctIndex est déjà approprié
+        // Pour éviter que la première soit toujours correcte
+        const options = [...q.options];
+        const correctAnswer = options[q.correctIndex];
+        
+        // Shuffle les options et mettre à jour correctIndex
+        for (let i = options.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [options[i], options[j]] = [options[j], options[i]];
+        }
+        
+        const newCorrectIndex = options.indexOf(correctAnswer);
+        
+        return {
+          ...q,
+          options,
+          correctIndex: newCorrectIndex
+        };
+      });
+      
     } catch (parseError) {
       console.error("Failed to parse quiz JSON:", parseError);
       console.error("Content was:", content);
