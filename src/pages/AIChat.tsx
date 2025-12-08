@@ -3,13 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Bot, User, Mic, MicOff, Paperclip, Trash2, MessageSquare, Plus, ArrowLeft } from 'lucide-react';
+import { Send, Bot, User, Mic, MicOff, Paperclip, Trash2, MessageSquare, Plus, ArrowLeft, Volume2, VolumeX, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useWebSpeech } from '@/hooks/useWebSpeech';
 
 interface Message { role: 'user' | 'assistant'; content: string; }
 interface Conversation { id: string; title: string | null; created_at: string; }
+interface UploadedFile { name: string; content: string; type: string; }
 
 const AIChat = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -17,16 +19,38 @@ const AIChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
+  
+  // Web Speech API
+  const {
+    isListening,
+    isSpeaking,
+    startListening,
+    stopListening,
+    speak,
+    stopSpeaking,
+    isSupported
+  } = useWebSpeech({
+    onResult: (text) => {
+      setInput(prev => (prev ? prev + ' ' : '') + text);
+    },
+    onError: (error) => {
+      toast({ title: 'Erreur micro', description: error, variant: 'destructive' });
+    }
+  });
 
-  useEffect(() => { if (!user) navigate('/auth'); else loadConversations(); }, [user, navigate]);
+  useEffect(() => { 
+    if (!loading) {
+      if (!user) navigate('/auth');
+      else loadConversations();
+    }
+  }, [user, loading, navigate]);
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
 
   const loadConversations = async () => {
@@ -103,16 +127,53 @@ const AIChat = () => {
     let convId = currentConversationId || await createNewConversation();
     if (!convId) return;
     setCurrentConversationId(convId);
-    const userMessage: Message = { role: 'user', content: input };
-    setMessages(prev => [...prev, userMessage]); setInput(''); setIsLoading(true);
-    await saveMessage(convId, 'user', input);
+    
+    // Inclure le fichier s'il existe
+    let fullContent = input;
+    if (uploadedFile) {
+      fullContent = `[Fichier attaché: ${uploadedFile.name}]\n${uploadedFile.content}\n\n${input}`;
+    }
+    
+    const userMessage: Message = { role: 'user', content: fullContent };
+    setMessages(prev => [...prev, userMessage]); 
+    setInput(''); 
+    setUploadedFile(null); // Réinitialiser après envoi
+    setIsLoading(true);
+    await saveMessage(convId, 'user', fullContent);
     await streamChat(userMessage, convId);
-    await loadConversations(); setIsLoading(false);
+    await loadConversations(); 
+    setIsLoading(false);
   };
 
-  const toggleRecording = async () => {
-    if (isRecording) { mediaRecorderRef.current?.stop(); setIsRecording(false); }
-    else { try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); const mr = new MediaRecorder(stream); mr.onstop = () => { stream.getTracks().forEach(t => t.stop()); toast({ title: "Audio enregistré" }); }; mr.start(); mediaRecorderRef.current = mr; setIsRecording(true); } catch { toast({ title: "Erreur microphone", variant: "destructive" }); } }
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Bloquer les images
+    if (file.type.startsWith('image/')) {
+      toast({ 
+        title: "Format non supporté", 
+        description: "Les images ne peuvent pas être analysées. Utilisez des fichiers texte (PDF, TXT, DOC, DOCX).",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const content = e.target?.result as string;
+        setUploadedFile({
+          name: file.name,
+          content: content.substring(0, 5000), // Limiter à 5000 caractères
+          type: file.type
+        });
+        toast({ title: "✅ Fichier ajouté", description: file.name });
+      };
+      reader.readAsText(file);
+    } catch (error) {
+      toast({ title: "❌ Erreur", description: "Impossible de lire le fichier", variant: "destructive" });
+    }
   };
 
   const newChat = useCallback(() => { setCurrentConversationId(null); setMessages([]); setShowSidebar(false); }, []);
@@ -147,7 +208,31 @@ const AIChat = () => {
               {messages.map((m, i) => (
                 <div key={i} className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {m.role === 'assistant' && <div className="bg-primary rounded w-7 h-7 flex items-center justify-center"><Bot className="w-4 h-4 text-primary-foreground" /></div>}
-                  <div className={`rounded-lg p-3 max-w-[80%] text-sm ${m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}><p className="whitespace-pre-wrap">{m.content}</p></div>
+                  <div className={`rounded-lg p-3 max-w-[80%] text-sm ${m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                    <p className="whitespace-pre-wrap">{m.content}</p>
+                    
+                    {/* Bouton voice pour les réponses de l'assistant */}
+                    {m.role === 'assistant' && isSupported() && (
+                      <Button
+                        onClick={() => isSpeaking ? stopSpeaking() : speak(m.content)}
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 gap-1 h-6 text-xs"
+                      >
+                        {isSpeaking ? (
+                          <>
+                            <VolumeX className="w-3 h-3" />
+                            Arrêter
+                          </>
+                        ) : (
+                          <>
+                            <Volume2 className="w-3 h-3" />
+                            Lire
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                   {m.role === 'user' && <div className="bg-secondary rounded w-7 h-7 flex items-center justify-center"><User className="w-4 h-4" /></div>}
                 </div>
               ))}
@@ -155,12 +240,81 @@ const AIChat = () => {
             </div>
           </ScrollArea>
           <div className="border-t p-3 bg-card">
-            <div className="max-w-2xl mx-auto flex gap-2">
-              <input type="file" ref={fileInputRef} className="hidden" accept="image/*,.pdf" onChange={() => toast({ title: "Fichier sélectionné" })} />
-              <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}><Paperclip className="w-5 h-5" /></Button>
-              <Button variant={isRecording ? "destructive" : "ghost"} size="icon" onClick={toggleRecording}>{isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}</Button>
-              <Input value={input} onChange={e => setInput(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSend()} placeholder="Posez votre question..." disabled={isLoading} className="flex-1" />
-              <Button onClick={handleSend} disabled={isLoading || !input.trim()}><Send className="w-4 h-4" /></Button>
+            <div className="max-w-2xl mx-auto">
+              {/* Affichage du fichier attaché */}
+              {uploadedFile && (
+                <div className="mb-2 flex items-center gap-2 p-2 bg-muted rounded text-sm">
+                  <Paperclip className="w-4 h-4" />
+                  <span className="flex-1 truncate">{uploadedFile.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setUploadedFile(null)}
+                    className="h-5 w-5 p-0"
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
+              
+              {/* Barre d'entrée */}
+              <div className="flex gap-2">
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/*,.pdf,.txt,.doc,.docx"
+                  onChange={handleFileSelect}
+                />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => fileInputRef.current?.click()}
+                  className={uploadedFile ? 'bg-muted' : ''}
+                >
+                  <Paperclip className="w-5 h-5" />
+                </Button>
+                
+                {/* Boutons Voice */}
+                {isSupported() && (
+                  <>
+                    {isListening ? (
+                      <Button 
+                        variant="destructive" 
+                        size="icon" 
+                        onClick={stopListening}
+                        title="Arrêter l'enregistrement"
+                      >
+                        <MicOff className="w-5 h-5" />
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={startListening}
+                        title="Commencer l'enregistrement vocal"
+                      >
+                        <Mic className="w-5 h-5" />
+                      </Button>
+                    )}
+                  </>
+                )}
+                
+                <Input 
+                  value={input} 
+                  onChange={e => setInput(e.target.value)} 
+                  onKeyPress={e => e.key === 'Enter' && handleSend()} 
+                  placeholder="Posez votre question... ou utilisez le microphone"
+                  disabled={isLoading || isListening}
+                  className="flex-1" 
+                />
+                <Button 
+                  onClick={handleSend} 
+                  disabled={isLoading || !input.trim()}
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>

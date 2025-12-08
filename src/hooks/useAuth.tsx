@@ -9,15 +9,69 @@ export const useAuth = () => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    const checkAdminRole = async (userId: string, email?: string) => {
+      try {
+        console.log('Checking admin role for user:', userId, email);
+        
+        // Si c'est le superadmin et qu'il n'a pas le rôle, l'ajouter automatiquement
+        if (email === 'ahdybau@gmail.com') {
+          console.log('Superadmin detected - ensuring admin role is set...');
+          
+          // Vérifier d'abord s'il a le rôle
+          const { data: existingRoles, error: checkError } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', userId)
+            .eq('role', 'admin');
+          
+          if (!checkError && (!existingRoles || existingRoles.length === 0)) {
+            // Si pas de rôle admin, l'ajouter
+            console.log('Adding admin role to superadmin...');
+            const { error: insertError } = await supabase
+              .from('user_roles')
+              .insert([
+                {
+                  user_id: userId,
+                  role: 'admin'
+                }
+              ]);
+            
+            if (insertError) {
+              console.error('Error adding admin role:', insertError);
+            } else {
+              console.log('Admin role successfully added');
+            }
+          }
+        }
+        
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId);
+        
+        if (error) {
+          console.error('Error checking admin role:', error);
+          setIsAdmin(false);
+          return;
+        }
+        
+        // Vérifier si l'utilisateur a le rôle 'admin' dans le tableau des rôles
+        const hasAdminRole = data && data.some((role: any) => role.role === 'admin');
+        console.log('Admin role check result:', { data, hasAdminRole });
+        setIsAdmin(hasAdminRole);
+      } catch (error) {
+        console.error('Error checking admin role:', error);
+        setIsAdmin(false);
+      }
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          setTimeout(() => {
-            checkAdminRole(session.user.id);
-          }, 0);
+          checkAdminRole(session.user.id, session.user.email);
         } else {
           setIsAdmin(false);
         }
@@ -29,35 +83,13 @@ export const useAuth = () => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        checkAdminRole(session.user.id);
+        checkAdminRole(session.user.id, session.user.email);
       }
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
-
-  const checkAdminRole = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .eq('role', 'admin')
-        .maybeSingle();
-      
-      if (error) {
-        console.error('Error checking admin role:', error);
-        setIsAdmin(false);
-        return;
-      }
-      
-      setIsAdmin(!!data);
-    } catch (error) {
-      console.error('Error checking admin role:', error);
-      setIsAdmin(false);
-    }
-  };
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({

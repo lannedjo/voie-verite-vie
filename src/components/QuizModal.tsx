@@ -5,9 +5,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle, XCircle, Brain, BookOpen, ArrowRight, Trophy, Loader2, Star, Zap, Flame, Crown } from 'lucide-react';
+import { CheckCircle, XCircle, Brain, BookOpen, ArrowRight, Trophy, Loader2, Star, Zap, Flame, Crown, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { useWebSpeech } from '@/hooks/useWebSpeech';
 
 interface MultipleChoiceQuestion {
   question: string;
@@ -56,6 +57,7 @@ const difficultyLevels = [
 
 export const QuizModal = memo(({ isOpen, onClose, reading }: QuizModalProps) => {
   const [loading, setLoading] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0); // 0-100
   const [evaluating, setEvaluating] = useState(false);
   const [quizData, setQuizData] = useState<QuizData | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
@@ -69,6 +71,24 @@ export const QuizModal = memo(({ isOpen, onClose, reading }: QuizModalProps) => 
   const [currentEvaluation, setCurrentEvaluation] = useState<Evaluation | null>(null);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const { toast } = useToast();
+  
+  // Web Speech API
+  const {
+    isListening,
+    isSpeaking,
+    startListening,
+    stopListening,
+    speak,
+    stopSpeaking,
+    isSupported
+  } = useWebSpeech({
+    onResult: (text) => {
+      setOpenAnswer(prev => (prev ? prev + ' ' : '') + text);
+    },
+    onError: (error) => {
+      toast({ title: 'Erreur micro', description: error, variant: 'destructive' });
+    }
+  });
 
   const resetQuiz = useCallback(() => {
     setQuizData(null);
@@ -82,12 +102,14 @@ export const QuizModal = memo(({ isOpen, onClose, reading }: QuizModalProps) => 
     setOpenScores([]);
     setCurrentEvaluation(null);
     setQuizCompleted(false);
+    setGenerationProgress(0);
   }, []);
 
   const generateQuiz = useCallback(async (difficulty: string) => {
     if (!reading) return;
     
     setLoading(true);
+    setGenerationProgress(0);
     setSelectedDifficulty(difficulty);
     setQuizData(null);
     setCurrentSection('mc');
@@ -100,6 +122,16 @@ export const QuizModal = memo(({ isOpen, onClose, reading }: QuizModalProps) => 
     setCurrentEvaluation(null);
     setQuizCompleted(false);
 
+    const startTime = Date.now();
+    const estimatedTime = 8000; // 8 secondes estimées pour la génération
+
+    // Progression linéaire et continue jusqu'à 95%
+    const progressInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progressPercent = (elapsed / estimatedTime) * 95; // Aller jusqu'à 95%
+      setGenerationProgress(Math.floor(Math.min(progressPercent, 95)));
+    }, 100); // Mise à jour toutes les 100ms pour fluidité
+
     try {
       const { data, error } = await supabase.functions.invoke('generate-quiz', {
         body: {
@@ -110,17 +142,28 @@ export const QuizModal = memo(({ isOpen, onClose, reading }: QuizModalProps) => 
         }
       });
 
+      clearInterval(progressInterval);
+      setGenerationProgress(100); // Sauter directement à 100% à la fin
+
       if (error) throw error;
       
       if (data.error) {
         throw new Error(data.error);
       }
 
+      // Afficher le quiz immédiatement quand reçu
       setQuizData(data);
       setLoading(false);
-    } catch {
+    } catch (err) {
+      clearInterval(progressInterval);
       setLoading(false);
       setSelectedDifficulty(null);
+      setGenerationProgress(0);
+      toast({ 
+        title: "Erreur", 
+        description: "Impossible de générer le quiz. Veuillez réessayer.",
+        variant: "destructive" 
+      });
     }
   }, [reading, toast]);
 
@@ -260,9 +303,14 @@ export const QuizModal = memo(({ isOpen, onClose, reading }: QuizModalProps) => 
 
         {/* Loading */}
         {loading && (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-3"></div>
-            <p className="text-primary font-semibold">VOIE, VÉRITÉ, VIE vous propose 25 questions</p>
+          <div className="text-center py-8 space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <div className="space-y-2">
+              <p className="text-primary font-semibold">Génération du quiz en cours...</p>
+              <Progress value={generationProgress} className="h-2" />
+              <p className="text-sm text-muted-foreground font-semibold">{Math.floor(generationProgress)}%</p>
+              <p className="text-xs text-muted-foreground mt-3">VOIE, VÉRITÉ, VIE vous propose 25 questions (15 QCM + 10 ouvertes)</p>
+            </div>
           </div>
         )}
 
@@ -341,33 +389,90 @@ export const QuizModal = memo(({ isOpen, onClose, reading }: QuizModalProps) => 
                   <p className="text-base font-medium mb-4">
                     {quizData.openEnded[currentIndex].question}
                   </p>
-                  <Textarea
-                    value={openAnswer}
-                    onChange={(e) => setOpenAnswer(e.target.value)}
-                    placeholder="Écrivez votre réponse détaillée..."
-                    rows={5}
-                    disabled={showResult || evaluating}
-                    className="mb-4"
-                  />
+                  <div className="space-y-3">
+                    <Textarea
+                      value={openAnswer}
+                      onChange={(e) => setOpenAnswer(e.target.value)}
+                      placeholder="Écrivez votre réponse détaillée... ou utilisez le microphone"
+                      rows={5}
+                      disabled={showResult || evaluating || isListening}
+                      className="mb-4"
+                    />
+                    
+                    {/* Boutons Voice */}
+                    {isSupported() && !showResult && (
+                      <div className="flex gap-2 flex-wrap">
+                        {isListening ? (
+                          <Button
+                            onClick={stopListening}
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                          >
+                            <MicOff className="w-4 h-4" />
+                            Arrêter l'enregistrement
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={startListening}
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                          >
+                            <Mic className="w-4 h-4" />
+                            Répondre au micro
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
                   {!showResult && !evaluating && (
-                    <Button onClick={evaluateOpenAnswer} disabled={!openAnswer.trim()}>
+                    <Button 
+                      onClick={evaluateOpenAnswer} 
+                      disabled={!openAnswer.trim()}
+                      className="mt-4"
+                    >
                       Soumettre pour évaluation
                     </Button>
                   )}
                   {evaluating && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="flex items-center gap-2 text-muted-foreground mt-4">
                       <Loader2 className="w-4 h-4 animate-spin" />
                       L'IA évalue votre réponse...
                     </div>
                   )}
                   {showResult && currentEvaluation && (
-                    <div className="space-y-3">
+                    <div className="space-y-3 mt-4">
                       <div className="flex items-center gap-2">
                         <Badge className="bg-primary">
                           {currentEvaluation.score}/{currentEvaluation.maxScore}
                         </Badge>
                         <span className="text-sm font-medium">points</span>
                       </div>
+                      
+                      {/* Bouton pour lire l'explication */}
+                      {isSupported() && currentEvaluation.feedback && (
+                        <Button
+                          onClick={() => isSpeaking ? stopSpeaking() : speak(currentEvaluation.feedback)}
+                          variant="outline"
+                          size="sm"
+                          className="gap-2 w-full"
+                        >
+                          {isSpeaking ? (
+                            <>
+                              <VolumeX className="w-4 h-4" />
+                              Arrêter la lecture
+                            </>
+                          ) : (
+                            <>
+                              <Volume2 className="w-4 h-4" />
+                              Lire l'explication
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      
                       <div className="p-3 bg-muted rounded-lg space-y-2">
                         <p className="text-sm">{currentEvaluation.feedback}</p>
                         {currentEvaluation.strengths.length > 0 && (

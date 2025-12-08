@@ -10,12 +10,12 @@ import Index from "./pages/Index";
 import About from "./pages/About";
 import Activities from "./pages/Activities";
 import BiblicalReading from "./pages/BiblicalReading";
+import BibleBookDetail from "./pages/BibleBookDetail";
 import Contact from "./pages/Contact";
 import Gallery from "./pages/Gallery";
 import FAQ from "./pages/FAQ";
 import Install from "./pages/Install";
 import Auth from "./pages/Auth";
-import Admin from "./pages/Admin";
 import AIChat from "./pages/AIChat";
 import PrayerForum from "./pages/PrayerForum";
 import NotFound from "./pages/NotFound";
@@ -45,12 +45,12 @@ const App = () => {
             <Route path="/about" element={<About />} />
             <Route path="/activities" element={<Activities />} />
             <Route path="/biblical-reading" element={<BiblicalReading />} />
+            <Route path="/bible-book/:bookId" element={<BibleBookDetail />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/faq" element={<FAQ />} />
             <Route path="/install" element={<Install />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/admin" element={<Admin />} />
             <Route path="/ai-chat" element={<AIChat />} />
             <Route path="/prayer-forum" element={<PrayerForum />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

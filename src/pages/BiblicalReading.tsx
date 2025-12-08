@@ -6,11 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, BookOpen, CheckCircle, Brain } from 'lucide-react';
+import { Calendar, BookOpen, CheckCircle, Brain, Library } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
 import { QuizModal } from '@/components/QuizModal';
+import { BibleBookSelector } from '@/components/BibleBookSelector';
+import { logger } from '@/lib/logger';
 
 interface Reading {
   id: string;
@@ -25,11 +27,18 @@ interface Reading {
   comment: string | null;
 }
 
+interface UserProgress {
+  reading_id: string;
+  completed: boolean;
+  completed_at?: string | null;
+}
+
 const BiblicalReading = () => {
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [selectedTestament, setSelectedTestament] = useState('all');
+  const [activeTab, setActiveTab] = useState('program');
   const [allReadings, setAllReadings] = useState<Reading[]>([]);
-  const [userProgress, setUserProgress] = useState<any[]>([]);
+  const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [quizReading, setQuizReading] = useState<Reading | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
@@ -38,17 +47,41 @@ const BiblicalReading = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Charger depuis cache d'abord pour une expérience rapide
+    const cached = localStorage.getItem('biblical_readings_cache');
+    if (cached) {
+      try {
+        setAllReadings(JSON.parse(cached));
+        setLoading(false);
+      } catch (e) {
+        setLoading(true);
+      }
+    } else {
+      setLoading(true);
+    }
+    
+    // Puis charger les données fraîches en arrière-plan
     loadAllReadings();
     if (user) loadUserProgress();
   }, [user]);
 
   const loadAllReadings = async () => {
-    const { data } = await supabase
-      .from('biblical_readings')
-      .select('id, day_number, date, month, year, books, chapters, chapters_count, type, comment')
-      .order('day_number');
-    setAllReadings(data || []);
-    setLoading(false);
+    try {
+      const { data } = await supabase
+        .from('biblical_readings')
+        .select('id, day_number, date, month, year, books, chapters, chapters_count, type, comment')
+        .order('day_number');
+      
+      if (data) {
+        setAllReadings(data);
+        // Mettre en cache pour les chargements futurs
+        localStorage.setItem('biblical_readings_cache', JSON.stringify(data));
+      }
+    } catch (error) {
+      logger.error('Erreur chargement lectures', {}, error instanceof Error ? error : new Error(String(error)));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadUserProgress = async () => {
@@ -84,8 +117,12 @@ const BiblicalReading = () => {
         setShowQuiz(true);
         toast({ title: "Lecture complétée !" });
       }
-    } catch {
-      // Silently handle error
+    } catch (error) {
+      logger.error('Erreur lors de la mise à jour du statut de lecture', 
+        { readingId: reading.id, userId: user.id }, 
+        error instanceof Error ? error : new Error(String(error))
+      );
+      toast({ title: "Erreur", description: "Impossible de mettre à jour votre progression", variant: "destructive" });
     }
   };
 
@@ -99,7 +136,7 @@ const BiblicalReading = () => {
     
     if (selectedMonth !== 'all') {
       const [month, year] = selectedMonth.split('-').map(Number);
-      filtered = filtered.filter(r => r.month === month && (r as any).year === year);
+      filtered = filtered.filter(r => r.month === month && r.year === year);
     }
     
     if (selectedTestament !== 'all') {
@@ -155,108 +192,140 @@ const BiblicalReading = () => {
 
         <section className="py-4 md:py-6">
           <div className="container mx-auto px-4 max-w-6xl">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-              <Card><CardHeader className="pb-1 pt-3"><CardTitle className="text-xs">Progression</CardTitle></CardHeader><CardContent className="pb-3"><div className="text-lg md:text-xl font-bold text-primary">{progressPercentage}%</div></CardContent></Card>
-              <Card><CardHeader className="pb-1 pt-3"><CardTitle className="text-xs">Complétées</CardTitle></CardHeader><CardContent className="pb-3"><div className="text-lg md:text-xl font-bold text-primary">{completedCount}/358</div></CardContent></Card>
-              <Card><CardHeader className="pb-1 pt-3"><CardTitle className="text-xs">Affichées</CardTitle></CardHeader><CardContent className="pb-3"><div className="text-lg md:text-xl font-bold text-primary">{filteredReadings.length}</div></CardContent></Card>
-              <Card><CardHeader className="pb-1 pt-3"><CardTitle className="text-xs">Restants</CardTitle></CardHeader><CardContent className="pb-3"><div className="text-lg md:text-xl font-bold text-primary">{358 - completedCount}</div></CardContent></Card>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-2 mb-6">
-              <Button 
-                variant={selectedMonth === 'all' ? 'default' : 'outline'} 
-                size="sm"
-                onClick={() => setSelectedMonth('all')}
-              >
-                Tous
-              </Button>
-              {monthsOrder.map((month) => {
-                const [m, y] = month.key.split('-').map(Number);
-                const monthReadings = allReadings.filter(r => r.month === m && (r as any).year === y);
-                const readingsInMonth = monthReadings.length;
-                if (readingsInMonth === 0) return null;
-                const completedInMonth = monthReadings.filter(r => 
-                  userProgress.some(p => p.reading_id === r.id && p.completed)
-                ).length;
-                const monthProgress = Math.round((completedInMonth / readingsInMonth) * 100);
-                return (
-                  <div key={month.key} className="flex flex-col items-center gap-1">
-                    <Button 
-                      variant={selectedMonth === month.key ? 'default' : 'outline'} 
-                      size="sm"
-                      onClick={() => setSelectedMonth(month.key)}
-                      className="w-full"
-                    >
-                      {month.name} <Badge variant="secondary" className="ml-1 text-xs">{completedInMonth}/{readingsInMonth}</Badge>
-                    </Button>
-                    <Progress value={monthProgress} className="w-full h-1.5" />
-                  </div>
-                );
-              })}
-            </div>
-
-            <Tabs value={selectedTestament} onValueChange={setSelectedTestament} className="mb-6">
-              <TabsList className="grid w-full max-w-xs mx-auto grid-cols-3">
-                <TabsTrigger value="all">Tous</TabsTrigger>
-                <TabsTrigger value="old">A.T.</TabsTrigger>
-                <TabsTrigger value="new">N.T.</TabsTrigger>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="program" className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  <span>Programme 354j</span>
+                </TabsTrigger>
+                <TabsTrigger value="books" className="flex items-center gap-2">
+                  <Library className="w-4 h-4" />
+                  <span>73 Livres</span>
+                </TabsTrigger>
               </TabsList>
-            </Tabs>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-              {filteredReadings.map((reading) => {
-                const completed = userProgress.some(p => p.reading_id === reading.id && p.completed);
-                return (
-                  <Card key={reading.id} className={completed ? 'ring-2 ring-primary/20' : ''}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-primary" />
-                          <span className="text-sm font-medium text-primary">Jour {reading.day_number}</span>
-                        </div>
-                        {completed && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-2"
-                            onClick={() => openQuizForReading(reading)}
-                          >
-                            <Brain className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                      <CardTitle className="text-base md:text-lg font-playfair">
-                        {new Date(reading.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div>
-                          <p className="font-semibold text-primary">{reading.books}</p>
-                          <p className="text-xs md:text-sm text-muted-foreground">
-                            Chapitres {reading.chapters} ({reading.chapters_count} chap.)
-                          </p>
-                        </div>
-                        {reading.comment && (
-                          <div className="bg-primary/5 rounded-lg p-3">
-                            <p className="text-xs italic text-muted-foreground">{reading.comment}</p>
-                          </div>
-                        )}
+              <TabsContent value="program" className="space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                  <Card><CardHeader className="pb-1 pt-3"><CardTitle className="text-xs">Progression</CardTitle></CardHeader><CardContent className="pb-3"><div className="text-lg md:text-xl font-bold text-primary">{progressPercentage}%</div></CardContent></Card>
+                  <Card><CardHeader className="pb-1 pt-3"><CardTitle className="text-xs">Complétées</CardTitle></CardHeader><CardContent className="pb-3"><div className="text-lg md:text-xl font-bold text-primary">{completedCount}/358</div></CardContent></Card>
+                  <Card><CardHeader className="pb-1 pt-3"><CardTitle className="text-xs">Affichées</CardTitle></CardHeader><CardContent className="pb-3"><div className="text-lg md:text-xl font-bold text-primary">{filteredReadings.length}</div></CardContent></Card>
+                  <Card><CardHeader className="pb-1 pt-3"><CardTitle className="text-xs">Restants</CardTitle></CardHeader><CardContent className="pb-3"><div className="text-lg md:text-xl font-bold text-primary">{358 - completedCount}</div></CardContent></Card>
+                </div>
+
+                <div className="flex flex-wrap justify-center gap-2 mb-6">
+                  <Button 
+                    variant={selectedMonth === 'all' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setSelectedMonth('all')}
+                  >
+                    Tous
+                  </Button>
+                  {monthsOrder.map((month) => {
+                    const [m, y] = month.key.split('-').map(Number);
+                    const monthReadings = allReadings.filter(r => r.month === m && r.year === y);
+                    const readingsInMonth = monthReadings.length;
+                    if (readingsInMonth === 0) return null;
+                    const completedInMonth = monthReadings.filter(r => 
+                      userProgress.some(p => p.reading_id === r.id && p.completed)
+                    ).length;
+                    const monthProgress = Math.round((completedInMonth / readingsInMonth) * 100);
+                    return (
+                      <div key={month.key} className="flex flex-col items-center gap-1">
                         <Button 
-                          size="sm" 
-                          variant={completed ? "default" : "outline"} 
-                          className="w-full text-xs" 
-                          onClick={() => toggleReadingComplete(reading)}
+                          variant={selectedMonth === month.key ? 'default' : 'outline'} 
+                          size="sm"
+                          onClick={() => setSelectedMonth(month.key)}
+                          className="w-full"
                         >
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          {completed ? "Lu" : "Marquer lu"}
+                          {month.name} <Badge variant="secondary" className="ml-1 text-xs">{completedInMonth}/{readingsInMonth}</Badge>
                         </Button>
+                        <Progress value={monthProgress} className="w-full h-1.5" />
                       </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                    );
+                  })}
+                </div>
+
+                <Tabs value={selectedTestament} onValueChange={setSelectedTestament} className="mb-6">
+                  <TabsList className="grid w-full max-w-xs mx-auto grid-cols-3">
+                    <TabsTrigger value="all">Tous</TabsTrigger>
+                    <TabsTrigger value="old">A.T.</TabsTrigger>
+                    <TabsTrigger value="new">N.T.</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                  {filteredReadings.map((reading) => {
+                    const completed = userProgress.some(p => p.reading_id === reading.id && p.completed);
+                    return (
+                      <Card key={reading.id} className={completed ? 'ring-2 ring-primary/20' : ''}>
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-primary" />
+                              <span className="text-sm font-medium text-primary">Jour {reading.day_number}</span>
+                            </div>
+                            {completed && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2"
+                                onClick={() => openQuizForReading(reading)}
+                              >
+                                <Brain className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                          <CardTitle className="text-base md:text-lg font-playfair">
+                            {new Date(reading.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            <div>
+                              <p className="font-semibold text-primary">{reading.books}</p>
+                              <p className="text-xs md:text-sm text-muted-foreground">
+                                Chapitres {reading.chapters} ({reading.chapters_count} chap.)
+                              </p>
+                            </div>
+                            {reading.comment && (
+                              <div className="bg-primary/5 rounded-lg p-3">
+                                <p className="text-xs italic text-muted-foreground">{reading.comment}</p>
+                              </div>
+                            )}
+                            <Button 
+                              size="sm" 
+                              variant={completed ? "default" : "outline"} 
+                              className="w-full text-xs" 
+                              onClick={() => toggleReadingComplete(reading)}
+                            >
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              {completed ? "Lu" : "Marquer lu"}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="books" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BookOpen className="w-5 h-5" />
+                      Explorez les 73 Livres Bibliques
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Accédez à tous les livres de la Bible catholique avec leurs chapitres et abréviations
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <BibleBookSelector />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         </section>
       </main>

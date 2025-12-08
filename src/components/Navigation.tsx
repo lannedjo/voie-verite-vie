@@ -12,7 +12,6 @@ import {
   HelpCircle,
   User,
   LogOut,
-  Shield,
   Bot,
   Heart
 } from 'lucide-react';
@@ -22,7 +21,7 @@ import logo3v from '@/assets/logo-3v.png';
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -88,17 +87,6 @@ const Navigation = () => {
                   <Bot className="w-4 h-4" />
                   Assistant IA
                 </Button>
-                {isAdmin && (
-                  <Button
-                    onClick={() => navigate('/admin')}
-                    variant="ghost"
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <Shield className="w-4 h-4" />
-                    Admin
-                  </Button>
-                )}
                 <Button
                   onClick={handleSignOut}
                   variant="outline"
@@ -170,19 +158,6 @@ const Navigation = () => {
                         <Bot className="w-4 h-4 mr-2" />
                         Assistant IA
                       </Button>
-                      {isAdmin && (
-                        <Button
-                          onClick={() => {
-                            navigate('/admin');
-                            setIsMenuOpen(false);
-                          }}
-                          variant="ghost"
-                          className="w-full justify-start"
-                        >
-                          <Shield className="w-4 h-4 mr-2" />
-                          Admin
-                        </Button>
-                      )}
                       <Button
                         onClick={() => {
                           handleSignOut();
