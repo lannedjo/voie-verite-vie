@@ -1,0 +1,8 @@
+functions:
+  - name: register-activity
+    esm_externals:
+      - "@supabase/supabase-js"
+
+  - name: whatsapp-invite
+    esm_externals:
+      - "@supabase/supabase-js"

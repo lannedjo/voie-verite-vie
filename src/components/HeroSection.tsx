@@ -2,14 +2,56 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Heart, BookOpen } from 'lucide-react';
+import { useWhatsAppInvite } from '@/hooks/useWhatsAppInvite';
+import { useToast } from '@/components/ui/use-toast';
 import heroDove from '@/assets/hero-dove.jpg';
 import logo3v from '@/assets/logo-3v.png';
 
 const HeroSection = () => {
   const [currentVerse, setCurrentVerse] = useState(0);
+  const { inviteToWhatsApp } = useWhatsAppInvite();
+  const { toast } = useToast();
   
   // Lien du groupe WhatsApp - À mettre à jour avec votre lien réel
   const whatsappGroupLink = "https://chat.whatsapp.com/YOUR_GROUP_LINK_HERE";
+
+  const handleWhatsAppInvite = async () => {
+    try {
+      // Demander l'email utilisateur
+      const email = prompt('Entrez votre email pour rejoindre le groupe WhatsApp:');
+      if (!email) return;
+
+      // Valider l'email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        toast({
+          title: "Email invalide",
+          description: "Veuillez entrer un email valide",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Enregistrer l'invitation
+      await inviteToWhatsApp(email);
+
+      toast({
+        title: "Succès!",
+        description: "Vous allez être redirigé vers WhatsApp"
+      });
+
+      // Rediriger vers WhatsApp après 1 seconde
+      setTimeout(() => {
+        window.open(whatsappGroupLink, '_blank');
+      }, 1000);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Une erreur s'est produite lors de l'invitation",
+        variant: "destructive"
+      });
+    }
+  };
   
   const biblicalVerses = [
     {
@@ -118,21 +160,19 @@ const HeroSection = () => {
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
               <div className="hidden group-hover:flex absolute top-full mt-2 left-1/2 -translate-x-1/2 flex-col gap-2 bg-white dark:bg-slate-900 rounded-lg shadow-lg p-2 z-50 min-w-max border border-border">
-                <a
-                  href="/auth"
+                <Link
+                  to="/auth"
                   className="px-4 py-2 text-sm text-foreground hover:bg-primary/10 rounded transition-colors"
                 >
                   Créer un compte
-                </a>
-                <a
-                  href={whatsappGroupLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 text-sm text-foreground hover:bg-green-100 dark:hover:bg-green-900/30 rounded transition-colors flex items-center gap-2"
+                </Link>
+                <button
+                  onClick={handleWhatsAppInvite}
+                  className="px-4 py-2 text-sm text-foreground hover:bg-green-100 dark:hover:bg-green-900/30 rounded transition-colors flex items-center gap-2 text-left"
                 >
                   <span>💬</span>
                   Rejoindre WhatsApp
-                </a>
+                </button>
               </div>
             </div>
             <Button 

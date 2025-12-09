@@ -53,15 +53,38 @@ export default function ActivityRegistrationModal({ activity, isOpen, onClose }:
     setLoading(true);
     
     try {
-      // Sauvegarder l'inscription localement
+      // Appeler la fonction Supabase Edge Function
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/register-activity`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+            activityId: activity.id,
+            activityTitle: activity.title
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de l\'inscription');
+      }
+
+      // Aussi sauvegarder localement en fallback
       const registrations = JSON.parse(localStorage.getItem('activity_registrations') || '[]');
       const newRegistration = {
         id: `${activity.id}-${Date.now()}`,
         activity_id: activity.id,
         activity_title: activity.title,
-        activity_date: activity.date,
-        activity_time: activity.time,
-        activity_location: activity.location,
         user_id: user?.id || null,
         first_name: formData.firstName,
         last_name: formData.lastName,
@@ -69,12 +92,14 @@ export default function ActivityRegistrationModal({ activity, isOpen, onClose }:
         phone: formData.phone,
         registered_at: new Date().toISOString()
       };
-      
       registrations.push(newRegistration);
       localStorage.setItem('activity_registrations', JSON.stringify(registrations));
 
-      // Log pour debug
-      logger.info('Inscription activité sauvegardée', { activityId: activity.id, email: formData.email });
+      logger.info('Inscription activité enregistrée', { 
+        activityId: activity.id, 
+        email: formData.email,
+        backend: 'Supabase Edge Function'
+      });
 
       // Succès
       setStep('confirmation');
@@ -94,8 +119,7 @@ export default function ActivityRegistrationModal({ activity, isOpen, onClose }:
       logger.error('Erreur lors de linscription', {}, error instanceof Error ? error : new Error(String(error)));
       toast({
         title: "Erreur",
-        description: "Une erreur s'est produite",
-        variant: "destructive"
+        description: error instanceof Error ? error.message : "Une erreur s'est produite"
       });
     } finally {
       setLoading(false);
