@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, Users, Clock, Search, Filter, Heart, Book, Users2, Paintbrush, Globe, MessageSquare, HandHeart } from 'lucide-react';
+import ActivityRegistrationModal from '@/components/ActivityRegistrationModal';
 import activityConference from '@/assets/activity-conference.jpg';
 import activityMeditation from '@/assets/activity-meditation.jpg';
 import activityBibleStudy from '@/assets/activity-bible-study.jpg';
@@ -13,6 +14,8 @@ import activityCreative from '@/assets/activity-creative.jpg';
 const Activities = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedActivity, setSelectedActivity] = useState<any>(null);
+  const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
 
   const categories = [
     { id: 'all', name: 'Toutes', icon: Globe },
@@ -252,6 +255,10 @@ const Activities = () => {
                           size="sm" 
                           className="divine-glow"
                           disabled={activity.status === 'full'}
+                          onClick={() => {
+                            setSelectedActivity(activity);
+                            setIsRegistrationModalOpen(true);
+                          }}
                         >
                           {activity.status === 'full' ? 'Complet' : 'S\'inscrire'}
                         </Button>
@@ -276,6 +283,15 @@ const Activities = () => {
           </div>
         </section>
       </main>
+
+      <ActivityRegistrationModal 
+        activity={selectedActivity}
+        isOpen={isRegistrationModalOpen}
+        onClose={() => {
+          setIsRegistrationModalOpen(false);
+          setSelectedActivity(null);
+        }}
+      />
     </div>
   );
 };

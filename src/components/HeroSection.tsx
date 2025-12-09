@@ -8,6 +8,9 @@ import logo3v from '@/assets/logo-3v.png';
 const HeroSection = () => {
   const [currentVerse, setCurrentVerse] = useState(0);
   
+  // Lien du groupe WhatsApp - À mettre à jour avec votre lien réel
+  const whatsappGroupLink = "https://chat.whatsapp.com/YOUR_GROUP_LINK_HERE";
+  
   const biblicalVerses = [
     {
       text: "Je suis le chemin, la vérité et la vie. Nul ne vient au Père que par moi.",
@@ -86,31 +89,52 @@ const HeroSection = () => {
                 </cite>
               </div>
             </div>
-            <div className="flex justify-center space-x-2 mt-6">
-              {biblicalVerses.map((_, index) => (
-                <button
-                  key={index}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    index === currentVerse ? 'bg-primary w-6' : 'bg-muted'
-                  }`}
-                  onClick={() => setCurrentVerse(index)}
-                />
-              ))}
+            <div className="flex flex-col items-center gap-4 mt-6">
+              <div className="flex justify-center space-x-2">
+                {biblicalVerses.map((_, index) => (
+                  <button
+                    key={index}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      index === currentVerse ? 'bg-primary w-6' : 'bg-muted'
+                    }`}
+                    onClick={() => setCurrentVerse(index)}
+                  />
+                ))}
+              </div>
+              <div className="text-xs text-muted-foreground font-medium">
+                Verset {currentVerse + 1} sur {biblicalVerses.length} • 1000+ versets bibliques disponibles
+              </div>
             </div>
           </div>
 
           {/* Boutons d'action */}
           <div className="fade-in-up flex flex-col sm:flex-row items-center justify-center gap-4" style={{ animationDelay: '0.9s' }}>
-            <Button 
-              size="lg" 
-              className="divine-glow text-lg px-8 py-6 bg-gradient-peace hover:scale-105 transition-all duration-300"
-              asChild
-            >
-              <Link to="/auth">
+            <div className="relative group">
+              <Button 
+                size="lg" 
+                className="divine-glow text-lg px-8 py-6 bg-gradient-peace hover:scale-105 transition-all duration-300"
+              >
                 Rejoignez notre communauté
                 <ArrowRight className="ml-2 w-5 h-5" />
-              </Link>
-            </Button>
+              </Button>
+              <div className="hidden group-hover:flex absolute top-full mt-2 left-1/2 -translate-x-1/2 flex-col gap-2 bg-white dark:bg-slate-900 rounded-lg shadow-lg p-2 z-50 min-w-max border border-border">
+                <a
+                  href="/auth"
+                  className="px-4 py-2 text-sm text-foreground hover:bg-primary/10 rounded transition-colors"
+                >
+                  Créer un compte
+                </a>
+                <a
+                  href={whatsappGroupLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 text-sm text-foreground hover:bg-green-100 dark:hover:bg-green-900/30 rounded transition-colors flex items-center gap-2"
+                >
+                  <span>💬</span>
+                  Rejoindre WhatsApp
+                </a>
+              </div>
+            </div>
             <Button 
               variant="outline" 
               size="lg"
@@ -125,18 +149,22 @@ const HeroSection = () => {
           </div>
 
           {/* Statistiques inspirantes */}
-          <div className="fade-in-up mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto" style={{ animationDelay: '1.2s' }}>
+          <div className="fade-in-up mt-16 grid grid-cols-1 md:grid-cols-4 gap-6 max-w-4xl mx-auto" style={{ animationDelay: '1.2s' }}>
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">73</div>
+              <div className="text-3xl font-bold text-primary mb-2">1000+</div>
+              <div className="text-sm text-muted-foreground">Versets bibliques</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-secondary mb-2">73</div>
               <div className="text-sm text-muted-foreground">Livres de la Bible</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-secondary mb-2">358</div>
+              <div className="text-3xl font-bold text-accent mb-2">358</div>
               <div className="text-sm text-muted-foreground">Jours de lecture</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-accent mb-2">2024</div>
-              <div className="text-sm text-muted-foreground">Année de fondation</div>
+              <div className="text-3xl font-bold text-divine-gold mb-2">∞</div>
+              <div className="text-sm text-muted-foreground">Grâce divine</div>
             </div>
           </div>
         </div>

@@ -297,11 +297,12 @@ const BiblicalReading = () => {
                   <Card><CardHeader className="pb-1 pt-3"><CardTitle className="text-xs">Restants</CardTitle></CardHeader><CardContent className="pb-3"><div className="text-lg md:text-xl font-bold text-primary">{358 - completedCount}</div></CardContent></Card>
                 </div>
 
-                <div className="flex flex-wrap justify-center gap-2 md:gap-3 mb-6">
+                <div className="flex flex-wrap justify-center gap-3 md:gap-4 mb-6 px-2">
                   <Button 
                     variant={selectedMonth === 'all' ? 'default' : 'outline'} 
                     size="sm"
                     onClick={() => setSelectedMonth('all')}
+                    className="px-4 py-2"
                   >
                     Tous
                   </Button>
@@ -320,7 +321,7 @@ const BiblicalReading = () => {
                           variant={selectedMonth === month.key ? 'default' : 'outline'} 
                           size="sm"
                           onClick={() => setSelectedMonth(month.key)}
-                          className="w-full"
+                          className="w-full px-4 py-2"
                         >
                           {month.name} <Badge variant="secondary" className="ml-1 text-xs">{completedInMonth}/{readingsInMonth}</Badge>
                         </Button>

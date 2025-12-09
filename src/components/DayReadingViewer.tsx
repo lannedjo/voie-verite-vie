@@ -154,16 +154,15 @@ export default function DayReadingViewer({ reading, onClose }: DayReadingViewerP
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                   📚 Chapitres à lire
                 </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                <div className="flex flex-wrap gap-2">
                   {chapters.map((ch, idx) => (
                     <Button
                       key={idx}
                       variant="outline"
-                      className="h-auto flex flex-col items-center justify-center p-3 text-center hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all"
+                      className="h-auto px-3 py-2 text-center hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all text-sm font-semibold"
                       onClick={() => setSelectedChapter(ch)}
                     >
-                      <span className="text-xs font-semibold text-muted-foreground">{ch.abbreviation}</span>
-                      <span className="text-lg font-bold">{ch.chapterNumber}</span>
+                      {ch.abbreviation} {ch.chapterNumber}
                     </Button>
                   ))}
                 </div>
