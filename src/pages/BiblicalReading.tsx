@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
 import { QuizModal } from '@/components/QuizModal';
 import { BibleBookSelector } from '@/components/BibleBookSelector';
+import DayReadingViewer from '@/components/DayReadingViewer';
 import { logger } from '@/lib/logger';
-import { groupReadingsByDay, GroupedReading } from '@/lib/reading-grouper';
 
 interface Reading {
   id: string;
@@ -26,6 +26,7 @@ interface Reading {
   chapters_count: number;
   type: string;
   comment: string | null;
+  testament?: 'old' | 'new';
 }
 
 interface UserProgress {
@@ -43,9 +44,58 @@ const BiblicalReading = () => {
   const [loading, setLoading] = useState(true);
   const [quizReading, setQuizReading] = useState<Reading | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [selectedDayReading, setSelectedDayReading] = useState<Reading | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const loadAllReadings = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('biblical_readings')
+        .select('id, day_number, date, month, year, books, chapters, chapters_count, type, comment')
+        .order('day_number');
+      
+      if (error) {
+        logger.error('Erreur Supabase: ', {}, error);
+        // Essayer de charger depuis le cache si la requête échoue
+        const cached = localStorage.getItem('biblical_readings_cache');
+        if (cached) {
+          try {
+            setAllReadings(JSON.parse(cached));
+          } catch (e) {
+            setAllReadings([]);
+          }
+        }
+      } else if (data) {
+        setAllReadings(data);
+        // Mettre en cache pour les chargements futurs
+        localStorage.setItem('biblical_readings_cache', JSON.stringify(data));
+      }
+    } catch (error) {
+      logger.error('Erreur chargement lectures', {}, error instanceof Error ? error : new Error(String(error)));
+      // Fallback au cache
+      const cached = localStorage.getItem('biblical_readings_cache');
+      if (cached) {
+        try {
+          setAllReadings(JSON.parse(cached));
+        } catch (e) {
+          setAllReadings([]);
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadUserProgress = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('user_reading_progress')
+      .select('reading_id, completed')
+      .eq('user_id', user.id);
+    setUserProgress(data || []);
+  }, [user]);
 
   useEffect(() => {
     // Charger depuis cache d'abord pour une expérience rapide
@@ -64,35 +114,7 @@ const BiblicalReading = () => {
     // Puis charger les données fraîches en arrière-plan
     loadAllReadings();
     if (user) loadUserProgress();
-  }, [user]);
-
-  const loadAllReadings = async () => {
-    try {
-      const { data } = await supabase
-        .from('biblical_readings')
-        .select('id, day_number, date, month, year, books, chapters, chapters_count, type, comment')
-        .order('day_number');
-      
-      if (data) {
-        setAllReadings(data);
-        // Mettre en cache pour les chargements futurs
-        localStorage.setItem('biblical_readings_cache', JSON.stringify(data));
-      }
-    } catch (error) {
-      logger.error('Erreur chargement lectures', {}, error instanceof Error ? error : new Error(String(error)));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadUserProgress = async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from('user_reading_progress')
-      .select('reading_id, completed')
-      .eq('user_id', user.id);
-    setUserProgress(data || []);
-  };
+  }, [user, loadAllReadings, loadUserProgress]);
 
   const toggleReadingComplete = async (reading: Reading) => {
     if (!user) return navigate('/auth');
@@ -127,45 +149,55 @@ const BiblicalReading = () => {
     }
   };
 
+  const openDayReading = (reading: Reading) => {
+    setSelectedDayReading(reading);
+  };
+
+  const closeDayReading = () => {
+    setSelectedDayReading(null);
+  };
+
   const openQuizForReading = (reading: Reading) => {
     setQuizReading(reading);
     setShowQuiz(true);
   };
 
-  const toggleGroupComplete = async (group: GroupedReading) => {
+  const toggleGroupComplete = async (reading: Reading) => {
     if (!user) return navigate('/auth');
     
-    // Marquer tous les jours du groupe comme complétés
-    for (const reading of group.readings) {
-      try {
-        const existing = userProgress.find(p => p.reading_id === reading.id);
-        
-        if (existing) {
-          if (!existing.completed) {
-            // Marquer comme complété
-            await supabase.from('user_reading_progress')
-              .update({ completed: true, completed_at: new Date().toISOString() })
-              .eq('user_id', user.id).eq('reading_id', reading.id);
-          }
-        } else {
-          // Créer une entrée
+    // Marquer cette lecture comme complétée
+    try {
+      const existing = userProgress.find(p => p.reading_id === reading.id);
+      
+      if (existing) {
+        if (!existing.completed) {
+          // Marquer comme complété
           await supabase.from('user_reading_progress')
-            .insert({ 
-              user_id: user.id, 
-              reading_id: reading.id, 
-              completed: true, 
-              completed_at: new Date().toISOString() 
-            });
+            .update({ completed: true, completed_at: new Date().toISOString() })
+            .eq('user_id', user.id).eq('reading_id', reading.id);
         }
-      } catch (error) {
-        console.error(`Erreur pour le jour ${reading.day_number}:`, error);
+      } else {
+        // Créer une entrée
+        await supabase.from('user_reading_progress')
+          .insert({ 
+            user_id: user.id, 
+            reading_id: reading.id, 
+            completed: true, 
+            completed_at: new Date().toISOString() 
+          });
       }
+    } catch (error) {
+      logger.error('Erreur lors de la mise à jour du statut de lecture', 
+        { readingId: reading.id, userId: user.id }, 
+        error instanceof Error ? error : new Error(String(error))
+      );
+      toast({ title: "Erreur", description: "Impossible de mettre à jour votre progression", variant: "destructive" });
     }
     
     await loadUserProgress();
-    setQuizReading(group.readings[0]);
+    setQuizReading(reading);
     setShowQuiz(true);
-    toast({ title: "Groupe de lectures marqué comme complété !" });
+    toast({ title: "Lecture marquée comme complétée !" });
   };
 
   const filteredReadings = useMemo(() => {
@@ -186,7 +218,7 @@ const BiblicalReading = () => {
     return filtered;
   }, [allReadings, selectedMonth, selectedTestament]);
 
-  const monthsOrder = [
+  const monthsOrder = useMemo(() => [
     { key: '11-2025', name: 'Nov 2025' },
     { key: '12-2025', name: 'Déc 2025' },
     { key: '1-2026', name: 'Jan 2026' },
@@ -200,10 +232,10 @@ const BiblicalReading = () => {
     { key: '9-2026', name: 'Sep 2026' },
     { key: '10-2026', name: 'Oct 2026' },
     { key: '11-2026', name: 'Nov 2026' },
-  ];
+  ], []);
   
-  const completedCount = userProgress.filter(p => p.completed).length;
-  const progressPercentage = Math.round((completedCount / 358) * 100);
+  const completedCount = useMemo(() => userProgress.filter(p => p.completed).length, [userProgress]);
+  const progressPercentage = useMemo(() => Math.round((completedCount / 358) * 100), [completedCount]);
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -213,6 +245,22 @@ const BiblicalReading = () => {
       </div>
     </div>
   );
+
+  // Afficher la lecture du jour si sélectionnée
+  if (selectedDayReading) {
+    return (
+      <div className="min-h-screen">
+        <Navigation />
+        <main className="pt-16 pb-8">
+          <section className="py-8">
+            <div className="container mx-auto px-4 max-w-4xl">
+              <DayReadingViewer reading={selectedDayReading} onClose={closeDayReading} />
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -290,78 +338,70 @@ const BiblicalReading = () => {
                   </TabsList>
                 </Tabs>
 
-                {/* Afficher les lectures groupées par jour */}
-                {useMemo(() => {
-                  const groupedReadings = groupReadingsByDay(filteredReadings);
-                  
-                  return (
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                      {groupedReadings.map((group: GroupedReading) => {
-                        // Vérifier si TOUS les jours du groupe sont complétés
-                        const allCompleted = group.readings.every(r =>
-                          userProgress.some(p => p.reading_id === r.id && p.completed)
-                        );
-                        
-                        // Vérifier si AU MOINS UN jour est complété
-                        const anyCompleted = group.readings.some(r =>
-                          userProgress.some(p => p.reading_id === r.id && p.completed)
-                        );
+                {/* Afficher chaque jour comme une carte séparée */}
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                  {filteredReadings.map((reading) => {
+                    const isCompleted = userProgress.some(p => p.reading_id === reading.id && p.completed);
 
-                        return (
-                          <Card key={group.groupId} className={allCompleted ? 'ring-2 ring-primary/20' : ''}>
-                            <CardHeader className="pb-3">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="w-4 h-4 text-primary" />
-                                  <span className="text-sm font-medium text-primary">
-                                    Jour{group.startDay !== group.endDay ? `s ${group.startDay}-${group.endDay}` : ` ${group.startDay}`}
-                                  </span>
-                                </div>
-                                {anyCompleted && (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-7 px-2"
-                                    onClick={() => openQuizForReading(group.readings[0])}
-                                  >
-                                    <Brain className="w-4 h-4" />
-                                  </Button>
-                                )}
+                    return (
+                      <Card key={reading.id} className={isCompleted ? 'ring-2 ring-primary/20' : ''}>
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-primary" />
+                              <span className="text-sm font-medium text-primary">
+                                Jour {reading.day_number}
+                              </span>
+                            </div>
+                            {isCompleted && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2"
+                                onClick={() => openQuizForReading(reading)}
+                              >
+                                <Brain className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                          <CardTitle className="text-base md:text-lg font-playfair">
+                            {new Date(reading.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            <Button
+                              variant="ghost"
+                              className="p-0 h-auto font-semibold text-primary hover:text-primary/80 justify-start w-full text-left break-words"
+                              onClick={() => openDayReading(reading)}
+                            >
+                              {reading.books} {reading.chapters.includes('-') 
+                                ? `${reading.chapters.split('-')[0]} à ${reading.chapters.split('-')[1]}`
+                                : reading.chapters}
+                            </Button>
+                            <p className="text-xs md:text-sm text-muted-foreground">
+                              {reading.chapters_count} chapitre{reading.chapters_count > 1 ? 's' : ''}
+                            </p>
+                            {reading.comment && (
+                              <div className="bg-primary/5 rounded-lg p-3">
+                                <p className="text-xs italic text-muted-foreground">{reading.comment}</p>
                               </div>
-                              <CardTitle className="text-base md:text-lg font-playfair">
-                                {new Date(group.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="space-y-3">
-                                <div>
-                                  <p className="font-semibold text-primary">{group.label}</p>
-                                  <p className="text-xs md:text-sm text-muted-foreground">
-                                    {group.totalChapters} chapitre{group.totalChapters > 1 ? 's' : ''}
-                                  </p>
-                                </div>
-                                {group.comments.length > 0 && (
-                                  <div className="bg-primary/5 rounded-lg p-3">
-                                    <p className="text-xs italic text-muted-foreground">{group.comments[0]}</p>
-                                  </div>
-                                )}
-                                <Button 
-                                  size="sm" 
-                                  variant={allCompleted ? "default" : "outline"} 
-                                  className="w-full text-xs" 
-                                  onClick={() => toggleGroupComplete(group)}
-                                >
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  {allCompleted ? "Complété" : "Marquer tout lu"}
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  );
-                }, [filteredReadings, userProgress])}
+                            )}
+                            <Button 
+                              size="sm" 
+                              variant={isCompleted ? "default" : "outline"} 
+                              className="w-full text-xs" 
+                              onClick={() => toggleReadingComplete(reading)}
+                            >
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              {isCompleted ? "Complété" : "Marquer comme lu"}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
               </TabsContent>
 
               <TabsContent value="books" className="space-y-6">

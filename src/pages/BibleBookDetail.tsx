@@ -89,32 +89,26 @@ const BibleBookDetail = () => {
       <main className="pt-16 pb-8">
         <section className="py-6 md:py-10 bg-gradient-to-b from-primary/5 to-transparent border-b">
           <div className="container mx-auto px-4">
-            <Button
-              onClick={() => navigate('/biblical-reading')}
-              variant="ghost"
-              className="mb-4"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Retour
-            </Button>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-3xl md:text-5xl font-playfair font-bold text-primary">
-                  {book.name}
-                </h1>
-                <Badge variant="default" className="text-lg px-3 py-1">
-                  {book.abbreviation}
-                </Badge>
-              </div>
-              <div className="flex items-center gap-3 flex-wrap text-muted-foreground">
-                <span>{testamentName}</span>
-                <span className="text-xs">•</span>
-                <span>{book.chapters} chapitre{book.chapters > 1 ? 's' : ''}</span>
+            <div className="flex items-center justify-between mb-4">
+              <Button
+                onClick={() => navigate('/biblical-reading')}
+                variant="ghost"
+                size="sm"
+                title="Retour aux lectures"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <div className="text-right">
+                <div className="flex items-center gap-2 justify-end">
+                  <h1 className="text-3xl md:text-5xl font-playfair font-bold text-primary">
+                    {book.name}
+                  </h1>
+                  <Badge variant="default" className="text-lg px-3 py-1 h-fit">
+                    {book.abbreviation}
+                  </Badge>
+                </div>
                 {book.apocrypha && (
-                  <>
-                    <span className="text-xs">•</span>
-                    <Badge variant="secondary">Deutérocanonique</Badge>
-                  </>
+                  <Badge variant="secondary" className="mt-2">Deutérocanonique</Badge>
                 )}
               </div>
             </div>
