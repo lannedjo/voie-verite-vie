@@ -53,33 +53,43 @@ export default function ActivityRegistrationModal({ activity, isOpen, onClose }:
     setLoading(true);
     
     try {
-      // Appeler la fonction Supabase Edge Function
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/register-activity`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-          },
-          body: JSON.stringify({
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            email: formData.email,
-            phone: formData.phone,
-            activityId: activity.id,
-            activityTitle: activity.title
-          })
+      let registeredViaBackend = false;
+
+      // Essayer l'API backend (si disponible)
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        if (supabaseUrl && supabaseKey) {
+          const response = await fetch(
+            `${supabaseUrl}/functions/v1/register-activity`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseKey}`
+              },
+              body: JSON.stringify({
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                email: formData.email,
+                phone: formData.phone,
+                activityId: activity.id,
+                activityTitle: activity.title
+              })
+            }
+          );
+
+          if (response.ok) {
+            registeredViaBackend = true;
+            logger.info('Inscription via Supabase', { email: formData.email });
+          }
         }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de l\'inscription');
+      } catch (backendError) {
+        logger.warn('Backend indisponible, utilisation localStorage');
       }
 
-      // Aussi sauvegarder localement en fallback
+      // Fallback: Sauvegarder localement
       const registrations = JSON.parse(localStorage.getItem('activity_registrations') || '[]');
       const newRegistration = {
         id: `${activity.id}-${Date.now()}`,
@@ -90,16 +100,11 @@ export default function ActivityRegistrationModal({ activity, isOpen, onClose }:
         last_name: formData.lastName,
         email: formData.email,
         phone: formData.phone,
-        registered_at: new Date().toISOString()
+        registered_at: new Date().toISOString(),
+        backend: registeredViaBackend ? 'Supabase' : 'localStorage'
       };
       registrations.push(newRegistration);
       localStorage.setItem('activity_registrations', JSON.stringify(registrations));
-
-      logger.info('Inscription activité enregistrée', { 
-        activityId: activity.id, 
-        email: formData.email,
-        backend: 'Supabase Edge Function'
-      });
 
       // Succès
       setStep('confirmation');
@@ -119,7 +124,8 @@ export default function ActivityRegistrationModal({ activity, isOpen, onClose }:
       logger.error('Erreur lors de linscription', {}, error instanceof Error ? error : new Error(String(error)));
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Une erreur s'est produite"
+        description: error instanceof Error ? error.message : "Une erreur s'est produite",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
