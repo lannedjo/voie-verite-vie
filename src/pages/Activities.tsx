@@ -40,7 +40,10 @@ const Activities = () => {
       maxParticipants: 80,
       description: 'Intégrer la prière, la méditation et la bienveillance dans la vie de tous les jours, en s\'inspirant des Écritures.',
       image: activityConference,
-      price: 'Gratuit',
+      price: 0,
+      currency: 'FCFA',
+      isPaid: false,
+      paymentMethods: [],
       status: 'open'
     },
     {
@@ -54,7 +57,10 @@ const Activities = () => {
       maxParticipants: 20,
       description: 'Pratiquer la pleine conscience et la respiration pour calmer l\'esprit et se rapprocher de Dieu.',
       image: activityMeditation,
-      price: 'Gratuit',
+      price: 0,
+      currency: 'FCFA',
+      isPaid: false,
+      paymentMethods: [],
       status: 'open'
     },
     {
@@ -68,7 +74,10 @@ const Activities = () => {
       maxParticipants: 30,
       description: 'Exploration approfondie de l\'Évangile selon saint Matthieu dans le contexte de l\'année liturgique A.',
       image: activityBibleStudy,
-      price: 'Gratuit',
+      price: 0,
+      currency: 'FCFA',
+      isPaid: false,
+      paymentMethods: [],
       status: 'almost-full'
     },
     {
@@ -82,7 +91,10 @@ const Activities = () => {
       maxParticipants: 100,
       description: 'Action caritative de Noël pour soutenir les familles en difficulté de notre communauté.',
       image: activityCommunity,
-      price: 'Gratuit',
+      price: 0,
+      currency: 'FCFA',
+      isPaid: false,
+      paymentMethods: [],
       status: 'open'
     },
     {
@@ -96,7 +108,10 @@ const Activities = () => {
       maxParticipants: 25,
       description: 'Explorer la communication, le pardon et l\'amour fraternel, guidés par les valeurs bibliques.',
       image: activityConference,
-      price: 'Gratuit',
+      price: 0,
+      currency: 'FCFA',
+      isPaid: false,
+      paymentMethods: [],
       status: 'open'
     },
     {
@@ -110,7 +125,13 @@ const Activities = () => {
       maxParticipants: 15,
       description: 'Exprimer sa spiritualité à travers l\'art de la calligraphie en transcrivant des versets bibliques.',
       image: activityCreative,
-      price: '15€',
+      price: 5000,
+      currency: 'FCFA',
+      isPaid: true,
+      paymentMethods: [
+        { provider: 'MTN', number: '677536642' },
+        { provider: 'Orange', number: '698952526' }
+      ],
       status: 'open'
     }
   ];
@@ -249,7 +270,10 @@ const Activities = () => {
                       
                       <div className="flex items-center justify-between">
                         <span className="text-lg font-semibold text-primary">
-                          {activity.price}
+                          {activity.isPaid 
+                            ? `${activity.price.toLocaleString()} ${activity.currency}`
+                            : 'Gratuit'
+                          }
                         </span>
                         <Button 
                           size="sm" 

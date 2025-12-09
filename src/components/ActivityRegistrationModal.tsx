@@ -6,6 +6,7 @@ import { useToast } from './ui/use-toast';
 import { X, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/lib/logger';
+import PaymentModal from './PaymentModal';
 
 interface Activity {
   id: number;
@@ -13,6 +14,12 @@ interface Activity {
   date: string;
   time: string;
   location: string;
+  price?: number;
+  currency?: string;
+  isPaid?: boolean;
+  paymentMethods?: Array<{ provider: string; number: string }>;
+  participants?: number;
+  maxParticipants?: number;
 }
 
 interface ActivityRegistrationModalProps {
@@ -22,7 +29,7 @@ interface ActivityRegistrationModalProps {
 }
 
 export default function ActivityRegistrationModal({ activity, isOpen, onClose }: ActivityRegistrationModalProps) {
-  const [step, setStep] = useState<'form' | 'confirmation'>('form');
+  const [step, setStep] = useState<'form' | 'confirmation' | 'payment'>('form');
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
@@ -30,6 +37,7 @@ export default function ActivityRegistrationModal({ activity, isOpen, onClose }:
     email: '',
     phone: ''
   });
+  const [registrationData, setRegistrationData] = useState<any>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -100,28 +108,37 @@ export default function ActivityRegistrationModal({ activity, isOpen, onClose }:
         last_name: formData.lastName,
         email: formData.email,
         phone: formData.phone,
+        payment_status: activity.isPaid ? 'pending' : 'completed',
         registered_at: new Date().toISOString(),
         backend: registeredViaBackend ? 'Supabase' : 'localStorage'
       };
       registrations.push(newRegistration);
       localStorage.setItem('activity_registrations', JSON.stringify(registrations));
 
-      // Succès
-      setStep('confirmation');
-      toast({
-        title: "Succès!",
-        description: "Vous êtes inscrit à cette activité"
-      });
+      setRegistrationData(newRegistration);
 
-      // Réinitialiser après 3 secondes
-      setTimeout(() => {
-        setStep('form');
-        setFormData({ firstName: '', lastName: '', email: '', phone: '' });
-        onClose();
-      }, 3000);
+      // Si l'activité est payante, aller à l'écran de paiement
+      if (activity.isPaid) {
+        setStep('payment');
+      } else {
+        // Sinon, aller à la confirmation et fermer
+        setStep('confirmation');
+        toast({
+          title: "Succès!",
+          description: "Vous êtes inscrit à cette activité"
+        });
+
+        // Réinitialiser après 3 secondes
+        setTimeout(() => {
+          setStep('form');
+          setFormData({ firstName: '', lastName: '', email: '', phone: '' });
+          setRegistrationData(null);
+          onClose();
+        }, 3000);
+      }
 
     } catch (error) {
-      logger.error('Erreur lors de linscription', {}, error instanceof Error ? error : new Error(String(error)));
+      logger.error('Erreur lors de l\'inscription', {}, error instanceof Error ? error : new Error(String(error)));
       toast({
         title: "Erreur",
         description: error instanceof Error ? error.message : "Une erreur s'est produite",
@@ -132,93 +149,139 @@ export default function ActivityRegistrationModal({ activity, isOpen, onClose }:
     }
   };
 
+  const handlePaymentConfirmed = () => {
+    setStep('confirmation');
+    toast({
+      title: "Succès!",
+      description: "Votre paiement a été confirmé et vous êtes inscrit"
+    });
+
+    setTimeout(() => {
+      setStep('form');
+      setFormData({ firstName: '', lastName: '', email: '', phone: '' });
+      setRegistrationData(null);
+      onClose();
+    }, 3000);
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle>
-            {step === 'form' ? 'S\'inscrire à l\'activité' : 'Inscription confirmée'}
-          </CardTitle>
-          <button
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </CardHeader>
+    <>
+      <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle>
+              {step === 'form' ? 'S\'inscrire à l\'activité' : 'Inscription confirmée'}
+            </CardTitle>
+            <button
+              onClick={onClose}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </CardHeader>
 
-        <CardContent>
-          {step === 'form' ? (
-            <div>
-              <div className="mb-4">
-                <h3 className="font-semibold text-foreground mb-2">{activity.title}</h3>
+          <CardContent>
+            {step === 'form' && (
+              <div>
+                <div className="mb-4">
+                  <h3 className="font-semibold text-foreground mb-2">{activity.title}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {activity.date} à {activity.time} • {activity.location}
+                  </p>
+                  {activity.isPaid && (
+                    <p className="text-sm font-semibold text-primary mt-2">
+                      Montant: {activity.price?.toLocaleString()} {activity.currency}
+                    </p>
+                  )}
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      placeholder="Prénom"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleInputChange}
+                      required
+                    />
+                    <Input
+                      placeholder="Nom"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                  <Input
+                    type="email"
+                    placeholder="Email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                  />
+                  <Input
+                    type="tel"
+                    placeholder="Téléphone (optionnel)"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                  />
+
+                  <Button 
+                    type="submit" 
+                    className="w-full divine-glow"
+                    disabled={loading}
+                  >
+                    {loading ? 'Traitement...' : 'Continuer'}
+                  </Button>
+                </form>
+              </div>
+            )}
+
+            {step === 'confirmation' && (
+              <div className="text-center py-8">
+                <div className="flex justify-center mb-4">
+                  <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                    <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
+                  </div>
+                </div>
+                <h4 className="font-semibold text-foreground mb-2">
+                  Merci {formData.firstName}!
+                </h4>
                 <p className="text-sm text-muted-foreground">
-                  {activity.date} à {activity.time} • {activity.location}
+                  {activity.isPaid 
+                    ? 'Votre inscription et paiement ont été confirmés.'
+                    : 'Votre inscription a été confirmée.'
+                  }
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Un email de confirmation vous sera envoyé.
                 </p>
               </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    placeholder="Prénom"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    required
-                  />
-                  <Input
-                    placeholder="Nom"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <Input
-                  type="email"
-                  placeholder="Email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                />
-                <Input
-                  type="tel"
-                  placeholder="Téléphone (optionnel)"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                />
-
-                <Button 
-                  type="submit" 
-                  className="w-full divine-glow"
-                  disabled={loading}
-                >
-                  {loading ? 'Inscription en cours...' : 'Confirmer l\'inscription'}
-                </Button>
-              </form>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
-                </div>
-              </div>
-              <h4 className="font-semibold text-foreground mb-2">
-                Merci {formData.firstName}!
-              </h4>
-              <p className="text-sm text-muted-foreground">
-                Votre inscription a été confirmée. Un email de confirmation vous sera envoyé.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+      {/* Payment Modal */}
+      {activity.isPaid && (
+        <PaymentModal
+          activity={activity as any}
+          userData={formData}
+          isOpen={step === 'payment'}
+          onClose={() => {
+            setStep('form');
+            setFormData({ firstName: '', lastName: '', email: '', phone: '' });
+            setRegistrationData(null);
+            onClose();
+          }}
+          onPaymentConfirmed={handlePaymentConfirmed}
+        />
+      )}
+    </>
   );
 }
 
