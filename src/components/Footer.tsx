@@ -195,6 +195,9 @@ const Footer = () => {
               <a href="#rgpd" className="text-background/80 hover:text-background transition-colors">
                 RGPD
               </a>
+              <a href="/admin-help" className="text-background/60 hover:text-background transition-colors">
+                Administration
+              </a>
             </div>
           </div>
           
