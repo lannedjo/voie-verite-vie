@@ -36,6 +36,12 @@ npm i
 npm run dev
 ```
 
+### Supabase migrations & types
+
+If you add or change database migrations under `supabase/migrations/`, run the migration and regenerate Supabase TypeScript types as described in `SUPABASE_MIGRATIONS_AND_TYPES.md`.
+
+This project expects `src/types/supabase.ts` (optional) to reflect your DB schema for type-safe `supabase.from<Table>()` calls.
+
 **Edit a file directly in GitHub**
 
 - Navigate to the desired file(s).

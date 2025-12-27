@@ -1,45 +1,111 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
-  LogOut,
-  Users,
-  DollarSign,
-  UserPlus,
-  Lock,
-  AlertCircle,
-  Download,
-  RefreshCw,
-  Eye,
+  Home,
+  Plus,
   Trash2,
   Edit2,
-  CheckCircle,
-  Clock,
-  AlertTriangle,
-} from 'lucide-react';
-import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { AdminLogin } from '@/components/AdminLogin';
+  Save,
+  X,
+  Menu,
+          {/* Utilisateurs */}
+          {currentPage === 'users' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-white">Utilisateurs</h2>
+              {users.length > 0 ? (
+                <div className="space-y-4">
+                  {users.map((u) => (
+                    <Card key={u.id} className="bg-gray-800 border-gray-700">
+                      <CardContent className="pt-6">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="text-white font-semibold">{u.full_name || u.email || u.id}</h3>
+                            <p className="text-gray-400 text-sm">{u.email}</p>
+                            <p className="text-gray-500 text-xs mt-1">Rôle: {u.role || 'membre'}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => console.log('TODO: promote/demote', u)}>
+                              <Edit2 className="w-4 h-4 text-blue-400" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardContent className="pt-6">
+                    <p className="text-gray-400">Aucun utilisateur disponible ou accès refusé (RLS)</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+const menuItems = [
+  { id: 'dashboard', label: 'Tableau de bord', icon: Home },
+  { id: 'users', label: 'Utilisateurs', icon: Users },
+  { id: 'inscriptions', label: 'Inscriptions', icon: FileText },
+  { id: 'paiements', label: 'Paiements', icon: DollarSign },
+  { id: 'activites', label: 'Activités', icon: FileText },
+  { id: 'galerie', label: 'Galerie', icon: FileText },
+  { id: 'prieres', label: 'Prières', icon: MessageSquare },
+  { id: 'pages', label: 'Pages Contenu', icon: BookOpen },
+  { id: 'parametres', label: 'Paramètres', icon: Settings },
+];
+
+interface Activity {
+  id: string;
+  title: string;
+  description: string;
+  icon?: string;
+  order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface GalleryItem {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface PrayerRequest {
+  id: string;
+  author_name: string;
+  email: string;
+  title: string;
+  content: string;
+  is_approved: boolean;
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 interface ActivityRegistration {
   id: string;
-  activity_id: string;
+  activity_id: number;
   activity_title: string;
   first_name: string;
   last_name: string;
   email: string;
-  phone: string;
+  phone?: string;
   registered_at: string;
   created_at: string;
-  status?: 'pending' | 'confirmed' | 'cancelled';
 }
 
 interface PaymentRecord {
   id: string;
-  activity_id: string;
+  activity_id: number;
   activity_title: string;
   email: string;
   amount: number;
@@ -51,808 +117,753 @@ interface PaymentRecord {
   updated_at: string;
 }
 
-interface AdminStats {
-  totalRegistrations: number;
-  totalPayments: number;
-  totalRevenueXAF: number;
-  pendingPayments: number;
-  confirmedRegistrations: number;
-}
-
 export const Admin: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isLoading, isAuthenticated, logout, changePassword, addAdmin } =
-    useAdminAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { user, isAdmin, loading: isLoading, signOut } = useAuth();
+  const { toast } = useToast();
 
+  const currentPage = searchParams.get('page') || 'dashboard';
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Data States
+  const [users, setUsers] = useState<any[]>([]);
   const [registrations, setRegistrations] = useState<ActivityRegistration[]>([]);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
-  const [stats, setStats] = useState<AdminStats>({
-    totalRegistrations: 0,
-    totalPayments: 0,
-    totalRevenueXAF: 0,
-    pendingPayments: 0,
-    confirmedRegistrations: 0,
-  });
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [prayerRequests, setPrayerRequests] = useState<PrayerRequest[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
-  // Change password state
-  const [showChangePassword, setShowChangePassword] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [passwordSuccess, setPasswordSuccess] = useState('');
+  // Edit/Add States
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [editingType, setEditingType] = useState<string>('');
+  const [formData, setFormData] = useState<any>({});
 
-  // Add admin state
-  const [showAddAdmin, setShowAddAdmin] = useState(false);
-  const [newAdminEmail, setNewAdminEmail] = useState('');
-  const [newAdminName, setNewAdminName] = useState('');
-  const [adminError, setAdminError] = useState('');
-  const [adminSuccess, setAdminSuccess] = useState('');
-
-  // Redirect if not authenticated
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      navigate('/admin');
+    if (isAdmin) {
+      loadAllData();
     }
-  }, [isLoading, isAuthenticated, navigate]);
-
-  // Load data from localStorage
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadData();
-    }
-  }, [isAuthenticated]);
-
-  const loadData = async () => {
+  }, [isAdmin]);
+  const loadAllData = async () => {
     setIsLoadingData(true);
     try {
-      // Load registrations from localStorage
-      const registrationsData = localStorage.getItem('activity_registrations');
-      const paymentsData = localStorage.getItem('activity_payments');
+      try {
+        const [{ data: registrationsData }, { data: paymentsData }, { data: activitiesData }, { data: galleryData }, { data: prayerData }] = await Promise.all([
+          supabase.from<any>('activity_registrations').select('*'),
+          supabase.from<any>('activity_payments').select('*'),
+          supabase.from<any>('activities').select('*').order('order'),
+          supabase.from<any>('gallery_items').select('*').order('order'),
+          supabase.from<any>('prayer_requests').select('*'),
+        ]);
 
-      const regs: ActivityRegistration[] = registrationsData
-        ? JSON.parse(registrationsData)
-        : [];
-      const pays: PaymentRecord[] = paymentsData ? JSON.parse(paymentsData) : [];
+        if (registrationsData) setRegistrations(registrationsData as ActivityRegistration[]);
+        if (paymentsData) setPayments(paymentsData as PaymentRecord[]);
+        if (activitiesData) setActivities(activitiesData as Activity[]);
+        if (galleryData) setGallery(galleryData as GalleryItem[]);
+        if (prayerData) setPrayerRequests(prayerData as PrayerRequest[]);
+      } catch (err) {
+        console.warn('Supabase fetch failed, falling back to localStorage', err);
 
-      setRegistrations(regs);
-      setPayments(pays);
-
-      // Calculate stats
-      const totalRevenueXAF = pays.reduce((sum, p) => {
-        if (p.status === 'completed' && p.currency === 'XAF') {
-          return sum + p.amount;
+        const localPayments = localStorage.getItem('activity_payments');
+        if (localPayments) {
+          try {
+            setPayments(JSON.parse(localPayments));
+          } catch (e) {
+            console.warn('Erreur parsing localStorage payments');
+          }
         }
-        return sum;
-      }, 0);
 
-      const pendingPayments = pays.filter(
-        (p) => p.status === 'pending'
-      ).length;
+        const localActivities = localStorage.getItem('app_activities');
+        if (localActivities) {
+          try {
+            setActivities(JSON.parse(localActivities));
+          } catch (e) {
+            console.warn('Erreur parsing activités');
+          }
+        }
 
-      const confirmedRegistrations = regs.filter(
-        (r) => r.status === 'confirmed'
-      ).length;
-
-      setStats({
-        totalRegistrations: regs.length,
-        totalPayments: pays.length,
-        totalRevenueXAF,
-        pendingPayments,
-        confirmedRegistrations,
-      });
+        const localGallery = localStorage.getItem('app_gallery');
+        if (localGallery) {
+          try {
+            setGallery(JSON.parse(localGallery));
+          } catch (e) {
+            console.warn('Erreur parsing galerie');
+          }
+        }
+      }
     } catch (error) {
-      console.error('Erreur lors du chargement des données:', error);
+      console.error('Erreur lors du chargement:', error);
+      toast({ title: 'Erreur', description: 'Erreur lors du chargement des données' });
     } finally {
       setIsLoadingData(false);
     }
   };
 
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPasswordError('');
-    setPasswordSuccess('');
-
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordError('Veuillez remplir tous les champs');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setPasswordError('Les mots de passe ne correspondent pas');
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      setPasswordError('Le mot de passe doit contenir au moins 8 caractères');
-      return;
-    }
-
-    try {
-      const result = await changePassword(currentPassword, newPassword);
-      if (result.success) {
-        setPasswordSuccess('Mot de passe modifié avec succès');
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-        setTimeout(() => {
-          setShowChangePassword(false);
-          setPasswordSuccess('');
-        }, 2000);
-      } else {
-        setPasswordError(result.error || 'Erreur lors du changement');
-      }
-    } catch (error) {
-      setPasswordError('Erreur lors du changement de mot de passe');
-    }
+  const handleLogout = async () => {
+    await signOut();
+    toast({ title: 'Déconnecté' });
+    navigate('/');
   };
 
-  const handleAddAdmin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAdminError('');
-    setAdminSuccess('');
-
-    if (!newAdminEmail || !newAdminName) {
-      setAdminError('Veuillez remplir tous les champs');
-      return;
-    }
-
-    if (!newAdminEmail.includes('@')) {
-      setAdminError('Adresse email invalide');
-      return;
-    }
-
-    try {
-      const result = await addAdmin(newAdminEmail, newAdminName, 'admin');
-      if (result.success) {
-        setAdminSuccess(
-          `Admin ${newAdminName} ajouté avec succès. Un email sera envoyé avec le mot de passe temporaire.`
-        );
-        setNewAdminEmail('');
-        setNewAdminName('');
-        setTimeout(() => {
-          setShowAddAdmin(false);
-          setAdminSuccess('');
-        }, 3000);
-      } else {
-        setAdminError(result.error || 'Erreur lors de l\'ajout de l\'admin');
-      }
-    } catch (error) {
-      setAdminError('Erreur lors de l\'ajout de l\'admin');
-    }
+  const handleEdit = (item: any, type: string) => {
+    setEditingItem(item);
+    setEditingType(type);
+    setFormData({ ...item });
   };
 
-  const downloadCSV = (data: any[], filename: string) => {
-    if (data.length === 0) {
-      alert('Aucune donnée à télécharger');
-      return;
-    }
-
-    const headers = Object.keys(data[0]);
-    const csv = [
-      headers.join(','),
-      ...data.map((row) =>
-        headers.map((header) => {
-          const value = row[header];
-          if (typeof value === 'string' && value.includes(',')) {
-            return `"${value}"`;
+  const handleSave = async () => {
+    try {
+      if (editingType === 'activity') {
+        try {
+          if (editingItem?.id) {
+            await supabase.from<any>('activities').update(formData).eq('id', editingItem.id);
+          } else {
+            await supabase.from<any>('activities').insert([formData]);
           }
-          return value;
-        }).join(',')
-      ),
-    ].join('\n');
+          toast({ title: 'Activité enregistrée (Supabase)' });
+        } catch (err) {
+          let dataArray = activities;
+          const index = dataArray.findIndex((item) => item.id === editingItem?.id);
+          if (index > -1) dataArray[index] = formData;
+          else dataArray = [...dataArray, { ...formData, id: Date.now().toString() }];
+          setActivities(dataArray);
+          localStorage.setItem('app_activities', JSON.stringify(dataArray));
+          toast({ title: 'Activité enregistrée (local)' });
+        }
+      } else if (editingType === 'gallery') {
+        try {
+          if (editingItem?.id) {
+            await supabase.from<any>('gallery_items').update(formData).eq('id', editingItem.id);
+          } else {
+            await supabase.from<any>('gallery_items').insert([formData]);
+          }
+          toast({ title: 'Image enregistrée (Supabase)' });
+        } catch (err) {
+          let dataArray = gallery;
+          const index = dataArray.findIndex((item) => item.id === editingItem?.id);
+          if (index > -1) dataArray[index] = formData;
+          else dataArray = [...dataArray, { ...formData, id: Date.now().toString() }];
+          setGallery(dataArray);
+          localStorage.setItem('app_gallery', JSON.stringify(dataArray));
+          toast({ title: 'Image enregistrée (local)' });
+        }
+      } else {
+        return;
+      }
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      // refresh
+      await loadAllData();
+    } catch (error) {
+      console.error('Erreur saving', error);
+      toast({ title: 'Erreur', description: 'Impossible de sauvegarder' });
+    } finally {
+      setEditingItem(null);
+      setEditingType('');
+      setFormData({} as any);
+    }
+  };
+
+  const handleDelete = async (item: any, type: string) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer?')) return;
+
+    try {
+      switch (type) {
+        case 'activity': {
+          try {
+            await supabase.from<any>('activities').delete().eq('id', item.id);
+          } catch (err) {
+            const dataArray = activities.filter((a) => a.id !== item.id);
+            setActivities(dataArray);
+            localStorage.setItem('app_activities', JSON.stringify(dataArray));
+          }
+          break;
+        }
+        case 'gallery': {
+          try {
+            await supabase.from<any>('gallery_items').delete().eq('id', item.id);
+          } catch (err) {
+            const dataArray = gallery.filter((g) => g.id !== item.id);
+            setGallery(dataArray);
+            localStorage.setItem('app_gallery', JSON.stringify(dataArray));
+          }
+          break;
+        }
+        case 'prayer': {
+          await supabase.from<any>('prayer_requests').delete().eq('id', item.id);
+          setPrayerRequests((prev) => prev.filter((p) => p.id !== item.id));
+          break;
+        }
+        case 'inscription': {
+          await supabase.from<any>('activity_registrations').delete().eq('id', item.id);
+          setRegistrations((prev) => prev.filter((r) => r.id !== item.id));
+          break;
+        }
+        case 'payment': {
+          try {
+            await supabase.from<any>('activity_payments').delete().eq('id', item.id);
+            setPayments((prev) => prev.filter((p) => p.id !== item.id));
+          } catch (err) {
+            const dataArray = payments.filter((p) => p.id !== item.id);
+          }
+
+          // Try loading users/profiles (may require RLS/permissions)
+          try {
+            const { data: profiles } = await supabase.from<any>('profiles').select('*').order('created_at', { ascending: false });
+            if (profiles) setUsers(profiles);
+          } catch (err) {
+            console.warn('Impossible de charger les profils (RLS/permissions?)', err);
+          }
+            setPayments(dataArray);
+            localStorage.setItem('activity_payments', JSON.stringify(dataArray));
+          }
+          break;
+        }
+        default:
+          return;
+      }
+
+      toast({ title: 'Supprimé avec succès' });
+    } catch (error) {
+      console.error('Erreur:', error);
+      toast({ title: 'Erreur', description: String(error) });
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-white">Chargement...</p>
         </div>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    return <AdminLogin onLoginSuccess={() => navigate('/admin')} />;
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="pt-6">
+            <p className="text-red-400">Accès réservé aux administrateurs.</p>
+            <Button onClick={() => navigate('/')} className="mt-4 w-full">
+              Retourner
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Tableau de bord Admin
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Bienvenue, {user?.full_name || user?.email}
-            </p>
-          </div>
+    <div className="min-h-screen bg-gray-900 flex">
+      {/* Sidebar */}
+      <div
+        className={`${
+          sidebarOpen ? 'w-64' : 'w-0'
+        } bg-gray-800 border-r border-gray-700 transition-all duration-300 overflow-hidden flex flex-col`}
+      >
+        <div className="p-6 border-b border-gray-700">
+          <h1 className="text-xl font-bold text-white">🛡️ Admin</h1>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setSearchParams({ page: item.id })}
+                className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm ${
+                  currentPage === item.id
+                    ? 'bg-purple-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="border-t border-gray-700 p-4 space-y-2">
+          <p className="text-xs text-gray-400">Connecté:</p>
+          <p className="text-sm text-white font-medium truncate">{user?.email}</p>
           <Button
-            onClick={logout}
-            variant="outline"
-            className="text-red-600 border-red-200 hover:bg-red-50"
+            onClick={handleLogout}
+            variant="destructive"
+            className="w-full gap-2 text-xs"
           >
-            <LogOut className="w-4 h-4 mr-2" />
+            <LogOut className="w-4 h-4" />
             Déconnexion
           </Button>
         </div>
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <Users className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                <p className="text-gray-600 text-sm mb-1">Inscriptions</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.totalRegistrations}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <DollarSign className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                <p className="text-gray-600 text-sm mb-1">Paiements</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.totalPayments}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <CheckCircle className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
-                <p className="text-gray-600 text-sm mb-1">Confirmées</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.confirmedRegistrations}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <Clock className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                <p className="text-gray-600 text-sm mb-1">En attente</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.pendingPayments}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <DollarSign className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                <p className="text-gray-600 text-sm mb-1">Revenus (XAF)</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {stats.totalRevenueXAF.toLocaleString()}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Bar */}
+        <div className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="text-gray-300 hover:text-white"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          <Button onClick={() => navigate('/')} variant="outline" className="gap-2">
+            <Home className="w-4 h-4" />
+            Retour à l'app
+          </Button>
         </div>
 
-        {/* Main Tabs */}
-        <Tabs defaultValue="registrations" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="registrations">Inscriptions</TabsTrigger>
-            <TabsTrigger value="payments">Paiements</TabsTrigger>
-            <TabsTrigger value="settings">Paramètres</TabsTrigger>
-          </TabsList>
-
-          {/* Registrations Tab */}
-          <TabsContent value="registrations" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Inscriptions aux activités</CardTitle>
-                    <CardDescription>
-                      Liste complète des inscriptions
-                    </CardDescription>
-                  </div>
-                  <div className="space-x-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={loadData}
-                      disabled={isLoadingData}
-                    >
-                      <RefreshCw className="w-4 h-4 mr-1" />
-                      Actualiser
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() =>
-                        downloadCSV(registrations, 'inscriptions.csv')
-                      }
-                    >
-                      <Download className="w-4 h-4 mr-1" />
-                      Exporter
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {registrations.length === 0 ? (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Aucune inscription pour le moment.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="border-b">
-                        <tr>
-                          <th className="text-left py-3 px-4 font-semibold">
-                            Nom
-                          </th>
-                          <th className="text-left py-3 px-4 font-semibold">
-                            Email
-                          </th>
-                          <th className="text-left py-3 px-4 font-semibold">
-                            Activité
-                          </th>
-                          <th className="text-left py-3 px-4 font-semibold">
-                            Téléphone
-                          </th>
-                          <th className="text-left py-3 px-4 font-semibold">
-                            Date
-                          </th>
-                          <th className="text-center py-3 px-4 font-semibold">
-                            Statut
-                          </th>
-                          <th className="text-center py-3 px-4 font-semibold">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {registrations.map((reg) => (
-                          <tr key={reg.id} className="hover:bg-gray-50">
-                            <td className="py-3 px-4">
-                              {reg.first_name} {reg.last_name}
-                            </td>
-                            <td className="py-3 px-4 text-purple-600">
-                              {reg.email}
-                            </td>
-                            <td className="py-3 px-4 text-sm">
-                              {reg.activity_title}
-                            </td>
-                            <td className="py-3 px-4">{reg.phone || '-'}</td>
-                            <td className="py-3 px-4 text-sm text-gray-600">
-                              {new Date(reg.created_at).toLocaleDateString(
-                                'fr-FR'
-                              )}
-                            </td>
-                            <td className="py-3 px-4 text-center">
-                              <span
-                                className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                  reg.status === 'confirmed'
-                                    ? 'bg-green-100 text-green-800'
-                                    : reg.status === 'cancelled'
-                                      ? 'bg-red-100 text-red-800'
-                                      : 'bg-yellow-100 text-yellow-800'
-                                }`}
-                              >
-                                {reg.status === 'confirmed'
-                                  ? 'Confirmée'
-                                  : reg.status === 'cancelled'
-                                    ? 'Annulée'
-                                    : 'En attente'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-center space-x-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-blue-600"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-red-600"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Payments Tab */}
-          <TabsContent value="payments" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Gestion des paiements</CardTitle>
-                    <CardDescription>
-                      Suivi de tous les paiements reçus
-                    </CardDescription>
-                  </div>
-                  <div className="space-x-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={loadData}
-                      disabled={isLoadingData}
-                    >
-                      <RefreshCw className="w-4 h-4 mr-1" />
-                      Actualiser
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => downloadCSV(payments, 'paiements.csv')}
-                    >
-                      <Download className="w-4 h-4 mr-1" />
-                      Exporter
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {payments.length === 0 ? (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Aucun paiement enregistré.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="border-b">
-                        <tr>
-                          <th className="text-left py-3 px-4 font-semibold">
-                            Activité
-                          </th>
-                          <th className="text-left py-3 px-4 font-semibold">
-                            Email
-                          </th>
-                          <th className="text-right py-3 px-4 font-semibold">
-                            Montant
-                          </th>
-                          <th className="text-left py-3 px-4 font-semibold">
-                            Méthode
-                          </th>
-                          <th className="text-left py-3 px-4 font-semibold">
-                            Référence
-                          </th>
-                          <th className="text-center py-3 px-4 font-semibold">
-                            Statut
-                          </th>
-                          <th className="text-left py-3 px-4 font-semibold">
-                            Date
-                          </th>
-                          <th className="text-center py-3 px-4 font-semibold">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {payments.map((payment) => (
-                          <tr key={payment.id} className="hover:bg-gray-50">
-                            <td className="py-3 px-4 text-sm font-medium">
-                              {payment.activity_title}
-                            </td>
-                            <td className="py-3 px-4 text-purple-600">
-                              {payment.email}
-                            </td>
-                            <td className="py-3 px-4 text-right font-semibold">
-                              {payment.amount.toLocaleString()} {payment.currency}
-                            </td>
-                            <td className="py-3 px-4">
-                              <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                                {payment.payment_method === 'mtn'
-                                  ? 'MTN'
-                                  : 'Orange'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-sm font-mono text-gray-600">
-                              {payment.reference_number}
-                            </td>
-                            <td className="py-3 px-4 text-center">
-                              <span
-                                className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                  payment.status === 'completed'
-                                    ? 'bg-green-100 text-green-800'
-                                    : payment.status === 'failed'
-                                      ? 'bg-red-100 text-red-800'
-                                      : 'bg-yellow-100 text-yellow-800'
-                                }`}
-                              >
-                                {payment.status === 'completed'
-                                  ? 'Complété'
-                                  : payment.status === 'failed'
-                                    ? 'Échoué'
-                                    : 'En attente'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-600">
-                              {new Date(payment.created_at).toLocaleDateString(
-                                'fr-FR'
-                              )}
-                            </td>
-                            <td className="py-3 px-4 text-center space-x-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-blue-600"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-gray-600"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Settings Tab */}
-          <TabsContent value="settings" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Change Password */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Lock className="w-5 h-5" />
-                    Modifier le mot de passe
-                  </CardTitle>
-                  <CardDescription>
-                    Sécurisez votre compte avec un nouveau mot de passe
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {!showChangePassword ? (
-                    <Button
-                      onClick={() => setShowChangePassword(true)}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      Changer le mot de passe
-                    </Button>
-                  ) : (
-                    <form onSubmit={handleChangePassword} className="space-y-4">
-                      {passwordError && (
-                        <Alert variant="destructive">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>
-                            {passwordError}
-                          </AlertDescription>
-                        </Alert>
-                      )}
-
-                      {passwordSuccess && (
-                        <Alert className="bg-green-50 border-green-200">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <AlertDescription className="text-green-800">
-                            {passwordSuccess}
-                          </AlertDescription>
-                        </Alert>
-                      )}
-
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {/* Dashboard */}
+          {currentPage === 'dashboard' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-white">Tableau de Bord</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between">
                       <div>
-                        <label className="text-sm font-medium">
-                          Mot de passe actuel
-                        </label>
-                        <Input
-                          type="password"
-                          value={currentPassword}
-                          onChange={(e) => setCurrentPassword(e.target.value)}
-                          placeholder="••••••••"
-                          className="mt-1"
-                        />
+                        <p className="text-gray-400 text-sm">Inscriptions</p>
+                        <p className="text-3xl font-bold text-white mt-1">{registrations.length}</p>
                       </div>
+                      <FileText className="w-8 h-8 text-green-400" />
+                    </div>
+                  </CardContent>
+                </Card>
 
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between">
                       <div>
-                        <label className="text-sm font-medium">
-                          Nouveau mot de passe
-                        </label>
-                        <Input
-                          type="password"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="••••••••"
-                          className="mt-1"
-                        />
+                        <p className="text-gray-400 text-sm">Paiements</p>
+                        <p className="text-3xl font-bold text-white mt-1">{payments.length}</p>
                       </div>
+                      <DollarSign className="w-8 h-8 text-yellow-400" />
+                    </div>
+                  </CardContent>
+                </Card>
 
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between">
                       <div>
-                        <label className="text-sm font-medium">
-                          Confirmer le mot de passe
-                        </label>
-                        <Input
-                          type="password"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          placeholder="••••••••"
-                          className="mt-1"
-                        />
+                        <p className="text-gray-400 text-sm">Activités</p>
+                        <p className="text-3xl font-bold text-white mt-1">{activities.length}</p>
                       </div>
+                      <BookOpen className="w-8 h-8 text-blue-400" />
+                    </div>
+                  </CardContent>
+                </Card>
 
-                      <div className="space-x-2">
-                        <Button type="submit" className="bg-green-600">
-                          Confirmer
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            setShowChangePassword(false);
-                            setCurrentPassword('');
-                            setNewPassword('');
-                            setConfirmPassword('');
-                            setPasswordError('');
-                          }}
-                        >
-                          Annuler
-                        </Button>
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-gray-400 text-sm">Galerie</p>
+                        <p className="text-3xl font-bold text-white mt-1">{gallery.length}</p>
                       </div>
-                    </form>
-                  )}
+                      <FileText className="w-8 h-8 text-purple-400" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {/* Utilisateurs */}
+          {currentPage === 'users' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-white">Utilisateurs</h2>
+              <Card className="bg-gray-800 border-gray-700">
+                <CardContent className="pt-6">
+                  <p className="text-gray-400">Les utilisateurs sont gérés via Supabase Auth</p>
                 </CardContent>
               </Card>
+            </div>
+          )}
 
-              {/* Add Admin */}
-              {user?.role === 'super_admin' && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <UserPlus className="w-5 h-5" />
-                      Ajouter un administrateur
-                    </CardTitle>
-                    <CardDescription>
-                      Inviter un nouvel administrateur (super admin uniquement)
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {!showAddAdmin ? (
-                      <Button
-                        onClick={() => setShowAddAdmin(true)}
-                        variant="outline"
-                        className="w-full"
-                      >
-                        Ajouter un admin
-                      </Button>
-                    ) : (
-                      <form onSubmit={handleAddAdmin} className="space-y-4">
-                        {adminError && (
-                          <Alert variant="destructive">
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertDescription>{adminError}</AlertDescription>
-                          </Alert>
-                        )}
-
-                        {adminSuccess && (
-                          <Alert className="bg-green-50 border-green-200">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            <AlertDescription className="text-green-800">
-                              {adminSuccess}
-                            </AlertDescription>
-                          </Alert>
-                        )}
-
-                        <div>
-                          <label className="text-sm font-medium">
-                            Email
-                          </label>
-                          <Input
-                            type="email"
-                            value={newAdminEmail}
-                            onChange={(e) => setNewAdminEmail(e.target.value)}
-                            placeholder="admin@exemple.com"
-                            className="mt-1"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-sm font-medium">
-                            Nom complet
-                          </label>
-                          <Input
-                            type="text"
-                            value={newAdminName}
-                            onChange={(e) => setNewAdminName(e.target.value)}
-                            placeholder="Nom de l'administrateur"
-                            className="mt-1"
-                          />
-                        </div>
-
-                        <div className="space-x-2">
-                          <Button type="submit" className="bg-blue-600">
-                            Ajouter
-                          </Button>
+          {/* Inscriptions */}
+          {currentPage === 'inscriptions' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-white">Inscriptions aux Activités</h2>
+              {registrations.length > 0 ? (
+                <div className="space-y-4">
+                  {registrations.map((reg) => (
+                    <Card key={reg.id} className="bg-gray-800 border-gray-700">
+                      <CardContent className="pt-6">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="text-white font-semibold">
+                              {reg.first_name} {reg.last_name}
+                            </h3>
+                            <p className="text-gray-400 text-sm">{reg.email}</p>
+                            <p className="text-gray-500 text-xs mt-1">{reg.activity_title}</p>
+                            <p className="text-gray-500 text-xs mt-1">{reg.phone}</p>
+                          </div>
                           <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                              setShowAddAdmin(false);
-                              setNewAdminEmail('');
-                              setNewAdminName('');
-                              setAdminError('');
-                            }}
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDelete(reg, 'inscription')}
                           >
-                            Annuler
+                            <Trash2 className="w-4 h-4 text-red-400" />
                           </Button>
                         </div>
-                      </form>
-                    )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardContent className="pt-6">
+                    <p className="text-gray-400 text-center">Aucune inscription</p>
                   </CardContent>
                 </Card>
               )}
             </div>
+          )}
 
-            {/* Admin Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Informations du compte</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-600">Email</p>
-                  <p className="font-medium">{user?.email}</p>
+          {/* Paiements */}
+          {currentPage === 'paiements' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-white">Paiements</h2>
+              {payments.length > 0 ? (
+                <div className="space-y-4">
+                  {payments.map((payment) => (
+                    <Card key={payment.id} className="bg-gray-800 border-gray-700">
+                      <CardContent className="pt-6">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="text-white font-semibold">{payment.activity_title}</h3>
+                            <p className="text-gray-400 text-sm">{payment.email}</p>
+                            <p className="text-gray-500 text-xs mt-1">
+                              {payment.amount} {payment.currency}
+                            </p>
+                            <p className="text-gray-500 text-xs">
+                              Statut: <span className="text-yellow-400">{payment.status}</span>
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDelete(payment, 'payment')}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-400" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Nom complet</p>
-                  <p className="font-medium">{user?.full_name || '-'}</p>
+              ) : (
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardContent className="pt-6">
+                    <p className="text-gray-400 text-center">Aucun paiement</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Activités */}
+          {currentPage === 'activites' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-white">Activités</h2>
+                <Button onClick={() => handleEdit({}, 'activity')} className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Ajouter
+                </Button>
+              </div>
+
+              {editingItem && editingType === 'activity' && (
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="text-white">
+                      {editingItem.id ? 'Modifier' : 'Ajouter'} Activité
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Input
+                      placeholder="Titre"
+                      value={formData.title || ''}
+                      onChange={(e) =>
+                        setFormData({ ...formData, title: e.target.value })
+                      }
+                      className="bg-gray-700 border-gray-600 text-white"
+                    />
+                    <Textarea
+                      placeholder="Description"
+                      value={formData.description || ''}
+                      onChange={(e) =>
+                        setFormData({ ...formData, description: e.target.value })
+                      }
+                      className="bg-gray-700 border-gray-600 text-white"
+                    />
+                    <Input
+                      placeholder="Icône"
+                      value={formData.icon || ''}
+                      onChange={(e) =>
+                        setFormData({ ...formData, icon: e.target.value })
+                      }
+                      className="bg-gray-700 border-gray-600 text-white"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Ordre"
+                      value={formData.order || 0}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          order: parseInt(e.target.value),
+                        })
+                      }
+                      className="bg-gray-700 border-gray-600 text-white"
+                    />
+                    <div className="flex gap-2">
+                      <Button onClick={handleSave} className="gap-2">
+                        <Save className="w-4 h-4" />
+                        Enregistrer
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setEditingItem(null);
+                          setEditingType('');
+                        }}
+                        variant="outline"
+                      >
+                        Annuler
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {activities.length > 0 ? (
+                <div className="space-y-4">
+                  {activities.map((activity) => (
+                    <Card key={activity.id} className="bg-gray-800 border-gray-700">
+                      <CardContent className="pt-6">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="text-white font-semibold">{activity.title}</h3>
+                            <p className="text-gray-400 text-sm mt-1">
+                              {activity.description}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEdit(activity, 'activity')}
+                            >
+                              <Edit2 className="w-4 h-4 text-blue-400" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDelete(activity, 'activity')}
+                            >
+                              <Trash2 className="w-4 h-4 text-red-400" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Rôle</p>
-                  <p className="font-medium">
-                    {user?.role === 'super_admin'
-                      ? 'Super Administrateur'
-                      : 'Administrateur'}
+              ) : (
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardContent className="pt-6">
+                    <p className="text-gray-400 text-center">Aucune activité créée</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Galerie */}
+          {currentPage === 'galerie' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-white">Galerie</h2>
+                <Button onClick={() => handleEdit({}, 'gallery')} className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Ajouter Image
+                </Button>
+              </div>
+
+              {editingItem && editingType === 'gallery' && (
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="text-white">
+                      {editingItem.id ? 'Modifier' : 'Ajouter'} Image
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Input
+                      placeholder="URL de l'image"
+                      value={formData.image_url || ''}
+                      onChange={(e) =>
+                        setFormData({ ...formData, image_url: e.target.value })
+                      }
+                      className="bg-gray-700 border-gray-600 text-white"
+                    />
+                    <Input
+                      placeholder="Titre"
+                      value={formData.title || ''}
+                      onChange={(e) =>
+                        setFormData({ ...formData, title: e.target.value })
+                      }
+                      className="bg-gray-700 border-gray-600 text-white"
+                    />
+                    <Textarea
+                      placeholder="Description"
+                      value={formData.description || ''}
+                      onChange={(e) =>
+                        setFormData({ ...formData, description: e.target.value })
+                      }
+                      className="bg-gray-700 border-gray-600 text-white"
+                    />
+                    <div className="flex gap-2">
+                      <Button onClick={handleSave} className="gap-2">
+                        <Save className="w-4 h-4" />
+                        Enregistrer
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setEditingItem(null);
+                          setEditingType('');
+                        }}
+                        variant="outline"
+                      >
+                        Annuler
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {gallery.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {gallery.map((item) => (
+                    <Card key={item.id} className="bg-gray-800 border-gray-700 overflow-hidden">
+                      {item.image_url && (
+                        <img
+                          src={item.image_url}
+                          alt={item.title}
+                          className="w-full h-40 object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23333" width="200" height="200"/%3E%3Ctext x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="14" fill="%23999"%3EImage non disponible%3C/text%3E%3C/svg%3E';
+                          }}
+                        />
+                      )}
+                      <CardContent className="pt-4">
+                        <h3 className="text-white font-semibold">{item.title}</h3>
+                        <p className="text-gray-400 text-sm mt-1">{item.description}</p>
+                        <div className="flex gap-2 mt-4">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEdit(item, 'gallery')}
+                          >
+                            <Edit2 className="w-4 h-4 text-blue-400" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDelete(item, 'gallery')}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-400" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardContent className="pt-6">
+                    <p className="text-gray-400 text-center">Aucune image</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Prières */}
+          {currentPage === 'prieres' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-white">Demandes de Prière</h2>
+              {prayerRequests.length > 0 ? (
+                <div className="space-y-4">
+                  {prayerRequests.map((prayer) => (
+                    <Card key={prayer.id} className="bg-gray-800 border-gray-700">
+                      <CardContent className="pt-6">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="text-white font-semibold">{prayer.title}</h3>
+                            <p className="text-gray-400 text-sm">{prayer.author_name}</p>
+                            <p className="text-gray-500 text-xs mt-1">{prayer.email}</p>
+                            <p className="text-gray-300 text-sm mt-2">{prayer.content}</p>
+                            <p className="text-gray-500 text-xs mt-2">
+                              Approuvée: {prayer.is_approved ? '✅' : '❌'}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDelete(prayer, 'prayer')}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-400" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardContent className="pt-6">
+                    <p className="text-gray-400 text-center">Aucune demande de prière</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Pages */}
+          {currentPage === 'pages' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-white">Gestion des Pages</h2>
+              <Card className="bg-gray-800 border-gray-700">
+                <CardContent className="pt-6">
+                  <p className="text-gray-400">
+                    Les pages (Accueil, À Propos, FAQ) sont gérées via la table
+                    <code className="text-gray-300">page_content</code> dans Supabase.
                   </p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Paramètres */}
+          {currentPage === 'parametres' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-white">Paramètres Admin</h2>
+              <Card className="bg-gray-800 border-gray-700">
+                <CardContent className="pt-6">
+                  <p className="text-gray-400">Paramètres admin</p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

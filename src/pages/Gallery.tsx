@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Users, MapPin, Play, Image as ImageIcon, Filter, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import galleryRetreat from '@/assets/gallery-retreat.jpg';
 import activityConference from '@/assets/activity-conference.jpg';
 import activityBibleStudy from '@/assets/activity-bible-study.jpg';
@@ -13,6 +14,8 @@ import activityMeditation from '@/assets/activity-meditation.jpg';
 const Gallery = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedMedia, setSelectedMedia] = useState<any>(null);
+  const [galleryItems, setGalleryItems] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const categories = [
     { id: 'all', name: 'Tout' },
@@ -23,107 +26,159 @@ const Gallery = () => {
     { id: 'projets', name: 'Projets' }
   ];
 
-  const galleryItems = [
-    {
-      id: 1,
-      type: 'image',
-      title: 'Retraite spirituelle d\'Automne',
-      category: 'retraites',
-      date: '15 Oct 2024',
-      location: 'Monastère Sainte-Marie',
-      participants: 25,
-      description: 'Trois jours de silence, prière et méditation dans un cadre paisible.',
-      thumbnail: galleryRetreat,
-      media: galleryRetreat
-    },
-    {
-      id: 2,
-      type: 'video',
-      title: 'Conférence : La spiritualité au quotidien',
-      category: 'conferences',
-      date: '20 Nov 2024',
-      location: 'Salle Saint-Paul',
-      participants: 85,
-      description: 'Comment intégrer la prière et la méditation dans notre vie moderne.',
-      thumbnail: activityConference,
-      media: activityConference,
-      duration: '1h 15min'
-    },
-    {
-      id: 3,
-      type: 'image',
-      title: 'Atelier de calligraphie sacrée',
-      category: 'ateliers',
-      date: '05 Nov 2024',
-      location: 'Atelier d\'art communautaire',
-      participants: 12,
-      description: 'Apprentissage de l\'art de la calligraphie biblique.',
-      thumbnail: activityCreative,
-      media: activityCreative
-    },
-    {
-      id: 4,
-      type: 'video',
-      title: 'Collecte de Noël pour les démunis',
-      category: 'projets',
-      date: '25 Dec 2024',
-      location: 'Centre-ville',
-      participants: 67,
-      description: 'Action caritative de distribution de repas et cadeaux.',
-      thumbnail: activityCommunity,
-      media: activityCommunity,
-      duration: '8min'
-    },
-    {
-      id: 5,
-      type: 'image',
-      title: 'Étude biblique - Évangile de Matthieu',
-      category: 'ateliers',
-      date: '18 Nov 2024',
-      location: 'Bibliothèque paroissiale',
-      participants: 30,
-      description: 'Exploration approfondie du premier Évangile.',
-      thumbnail: activityBibleStudy,
-      media: activityBibleStudy
-    },
-    {
-      id: 6,
-      type: 'image',
-      title: 'Assemblée générale annuelle',
-      category: 'communaute',
-      date: '10 Jan 2024',
-      location: 'Centre communautaire',
-      participants: 120,
-      description: 'Rencontre annuelle des membres de l\'association.',
-      thumbnail: activityConference,
-      media: activityConference
-    },
-    {
-      id: 7,
-      type: 'video',
-      title: 'Méditation guidée en pleine nature',
-      category: 'retraites',
-      date: '22 Sep 2024',
-      location: 'Forêt de Fontainebleau',
-      participants: 18,
-      description: 'Méditation contemplative dans la création divine.',
-      thumbnail: activityMeditation,
-      media: activityMeditation,
-      duration: '45min'
-    },
-    {
-      id: 8,
-      type: 'image',
-      title: 'Groupe de prière hebdomadaire',
-      category: 'communaute',
-      date: '28 Nov 2024',
-      location: 'Chapelle Sainte-Thérèse',
-      participants: 35,
-      description: 'Moment de prière communautaire et d\'intercession.',
-      thumbnail: activityConference,
-      media: activityConference
-    }
-  ];
+  // Charger les images de la galerie depuis localStorage
+  useEffect(() => {
+    const loadGallery = async () => {
+      try {
+        const { data } = await supabase.from<any>('gallery_items').select('*').order('order');
+        if (data && data.length > 0) {
+          setGalleryItems(data);
+          setIsLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.warn('Supabase gallery fetch failed, using local fallback', err);
+      }
+
+      try {
+        // Charger depuis localStorage
+        const localGallery = localStorage.getItem('app_gallery');
+        let enrichedGallery = [];
+
+        if (localGallery) {
+          enrichedGallery = JSON.parse(localGallery).map((item: any, idx: number) => ({
+            id: item.id || idx + 1,
+            type: item.type || 'image',
+            title: item.title,
+            category: item.category || 'ateliers',
+            date: item.date || new Date().toLocaleDateString('fr-FR', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric'
+            }),
+            location: item.location || 'Lieu à définir',
+            participants: item.participants || Math.floor(Math.random() * 100) + 10,
+            description: item.description,
+            thumbnail: [galleryRetreat, activityConference, activityBibleStudy, activityCreative, activityCommunity, activityMeditation][idx % 6],
+            media: [galleryRetreat, activityConference, activityBibleStudy, activityCreative, activityCommunity, activityMeditation][idx % 6],
+            duration: item.duration || null
+          }));
+        } else {
+          // Utiliser les items par défaut si aucun en localStorage
+          enrichedGallery = [
+            {
+              id: 1,
+              type: 'image',
+              title: 'Retraite spirituelle d\'Automne',
+              category: 'retraites',
+              date: '15 Oct 2024',
+              location: 'Monastère Sainte-Marie',
+              participants: 25,
+              description: 'Trois jours de silence, prière et méditation dans un cadre paisible.',
+              thumbnail: galleryRetreat,
+              media: galleryRetreat
+            },
+            {
+              id: 2,
+              type: 'video',
+              title: 'Conférence : La spiritualité au quotidien',
+              category: 'conferences',
+              date: '20 Nov 2024',
+              location: 'Salle Saint-Paul',
+              participants: 85,
+              description: 'Comment intégrer la prière et la méditation dans notre vie moderne.',
+              thumbnail: activityConference,
+              media: activityConference,
+              duration: '1h 15min'
+            },
+            {
+              id: 3,
+              type: 'image',
+              title: 'Atelier de calligraphie sacrée',
+              category: 'ateliers',
+              date: '05 Nov 2024',
+              location: 'Atelier d\'art communautaire',
+              participants: 12,
+              description: 'Apprentissage de l\'art de la calligraphie biblique.',
+              thumbnail: activityCreative,
+              media: activityCreative
+            },
+            {
+              id: 4,
+              type: 'video',
+              title: 'Collecte de Noël pour les démunis',
+              category: 'projets',
+              date: '25 Dec 2024',
+              location: 'Centre-ville',
+              participants: 67,
+              description: 'Action caritative de distribution de repas et cadeaux.',
+              thumbnail: activityCommunity,
+              media: activityCommunity,
+              duration: '8min'
+            },
+            {
+              id: 5,
+              type: 'image',
+              title: 'Étude biblique - Évangile de Matthieu',
+              category: 'ateliers',
+              date: '18 Nov 2024',
+              location: 'Bibliothèque paroissiale',
+              participants: 30,
+              description: 'Exploration approfondie du premier Évangile.',
+              thumbnail: activityBibleStudy,
+              media: activityBibleStudy
+            },
+            {
+              id: 6,
+              type: 'image',
+              title: 'Assemblée générale annuelle',
+              category: 'communaute',
+              date: '10 Jan 2024',
+              location: 'Centre communautaire',
+              participants: 120,
+              description: 'Rencontre annuelle des membres de l\'association.',
+              thumbnail: activityConference,
+              media: activityConference
+            },
+            {
+              id: 7,
+              type: 'video',
+              title: 'Méditation guidée en pleine nature',
+              category: 'retraites',
+              date: '22 Sep 2024',
+              location: 'Forêt de Fontainebleau',
+              participants: 18,
+              description: 'Méditation contemplative dans la création divine.',
+              thumbnail: activityMeditation,
+              media: activityMeditation,
+              duration: '45min'
+            },
+            {
+              id: 8,
+              type: 'image',
+              title: 'Groupe de prière hebdomadaire',
+              category: 'communaute',
+              date: '28 Nov 2024',
+              location: 'Chapelle Sainte-Thérèse',
+              participants: 35,
+              description: 'Moment de prière communautaire et d\'intercession.',
+              thumbnail: activityConference,
+              media: activityConference
+            }
+          ];
+        }
+
+        setGalleryItems(enrichedGallery);
+      } catch (error) {
+        console.error('Erreur chargement galerie:', error);
+        setGalleryItems([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadGallery();
+  }, []);
 
   const filteredItems = selectedCategory === 'all' 
     ? galleryItems 

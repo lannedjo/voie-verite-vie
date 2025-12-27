@@ -28,35 +28,49 @@ export const useAdminAuth = () => {
     sessionToken: null,
   });
 
-  // Initialize from localStorage on mount
+  // Initialize from localStorage on mount and listen for changes
   useEffect(() => {
-    const storedToken = localStorage.getItem(ADMIN_STORAGE_KEY);
-    const storedUser = localStorage.getItem(ADMIN_USER_KEY);
+    const initializeAuth = () => {
+      const storedToken = localStorage.getItem(ADMIN_STORAGE_KEY);
+      const storedUser = localStorage.getItem(ADMIN_USER_KEY);
 
-    if (storedToken && storedUser) {
-      try {
-        const user = JSON.parse(storedUser);
-        setState({
-          user,
-          isLoading: false,
-          isAuthenticated: true,
-          error: null,
-          sessionToken: storedToken,
-        });
-      } catch (error) {
-        localStorage.removeItem(ADMIN_STORAGE_KEY);
-        localStorage.removeItem(ADMIN_USER_KEY);
-        setState({
-          user: null,
-          isLoading: false,
-          isAuthenticated: false,
-          error: null,
-          sessionToken: null,
-        });
+      if (storedToken && storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          setState({
+            user,
+            isLoading: false,
+            isAuthenticated: true,
+            error: null,
+            sessionToken: storedToken,
+          });
+        } catch (error) {
+          localStorage.removeItem(ADMIN_STORAGE_KEY);
+          localStorage.removeItem(ADMIN_USER_KEY);
+          setState({
+            user: null,
+            isLoading: false,
+            isAuthenticated: false,
+            error: null,
+            sessionToken: null,
+          });
+        }
+      } else {
+        setState((prev) => ({ ...prev, isLoading: false }));
       }
-    } else {
-      setState((prev) => ({ ...prev, isLoading: false }));
-    }
+    };
+
+    initializeAuth();
+
+    // Listen for storage changes from other tabs/windows
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === ADMIN_STORAGE_KEY || e.key === ADMIN_USER_KEY) {
+        initializeAuth();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const login = useCallback(

@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, Users, Clock, Search, Filter, Heart, Book, Users2, Paintbrush, Globe, MessageSquare, HandHeart } from 'lucide-react';
 import ActivityRegistrationModal from '@/components/ActivityRegistrationModal';
+import { supabase } from '@/integrations/supabase/client';
 import activityConference from '@/assets/activity-conference.jpg';
 import activityMeditation from '@/assets/activity-meditation.jpg';
 import activityBibleStudy from '@/assets/activity-bible-study.jpg';
@@ -16,6 +17,8 @@ const Activities = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
+  const [dynamicActivities, setDynamicActivities] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const categories = [
     { id: 'all', name: 'Toutes', icon: Globe },
@@ -28,115 +31,171 @@ const Activities = () => {
     { id: 'culturel', name: 'Événements culturels', icon: Users2 }
   ];
 
-  const activities = [
-    {
-      id: 1,
-      title: 'La spiritualité au quotidien',
-      category: 'conferences',
-      date: '15 Dec 2024',
-      time: '14h00',
-      location: 'Salle Saint-Paul',
-      participants: 45,
-      maxParticipants: 80,
-      description: 'Intégrer la prière, la méditation et la bienveillance dans la vie de tous les jours, en s\'inspirant des Écritures.',
-      image: activityConference,
-      price: 0,
-      currency: 'FCFA',
-      isPaid: false,
-      paymentMethods: [],
-      status: 'open'
-    },
-    {
-      id: 2,
-      title: 'Méditation et Pleine Conscience',
-      category: 'bien-etre',
-      date: '20 Dec 2024',
-      time: '19h00',
-      location: 'Jardin de la Paix',
-      participants: 12,
-      maxParticipants: 20,
-      description: 'Pratiquer la pleine conscience et la respiration pour calmer l\'esprit et se rapprocher de Dieu.',
-      image: activityMeditation,
-      price: 0,
-      currency: 'FCFA',
-      isPaid: false,
-      paymentMethods: [],
-      status: 'open'
-    },
-    {
-      id: 3,
-      title: 'Étude du livre de Matthieu',
-      category: 'etudes',
-      date: '22 Dec 2024',
-      time: '16h30',
-      location: 'Bibliothèque paroissiale',
-      participants: 28,
-      maxParticipants: 30,
-      description: 'Exploration approfondie de l\'Évangile selon saint Matthieu dans le contexte de l\'année liturgique A.',
-      image: activityBibleStudy,
-      price: 0,
-      currency: 'FCFA',
-      isPaid: false,
-      paymentMethods: [],
-      status: 'almost-full'
-    },
-    {
-      id: 4,
-      title: 'Collecte pour les plus démunis',
-      category: 'projets',
-      date: '25 Dec 2024',
-      time: '10h00',
-      location: 'Centre-ville',
-      participants: 67,
-      maxParticipants: 100,
-      description: 'Action caritative de Noël pour soutenir les familles en difficulté de notre communauté.',
-      image: activityCommunity,
-      price: 0,
-      currency: 'FCFA',
-      isPaid: false,
-      paymentMethods: [],
-      status: 'open'
-    },
-    {
-      id: 5,
-      title: 'Groupe de discussion : Relations interpersonnelles',
-      category: 'discussions',
-      date: '28 Dec 2024',
-      time: '15h00',
-      location: 'Salon communautaire',
-      participants: 15,
-      maxParticipants: 25,
-      description: 'Explorer la communication, le pardon et l\'amour fraternel, guidés par les valeurs bibliques.',
-      image: activityConference,
-      price: 0,
-      currency: 'FCFA',
-      isPaid: false,
-      paymentMethods: [],
-      status: 'open'
-    },
-    {
-      id: 6,
-      title: 'Atelier de calligraphie sacrée',
-      category: 'creativite',
-      date: '02 Jan 2025',
-      time: '14h00',
-      location: 'Atelier d\'art',
-      participants: 8,
-      maxParticipants: 15,
-      description: 'Exprimer sa spiritualité à travers l\'art de la calligraphie en transcrivant des versets bibliques.',
-      image: activityCreative,
-      price: 5000,
-      currency: 'FCFA',
-      isPaid: true,
-      paymentMethods: [
-        { provider: 'MTN', number: '677536642' },
-        { provider: 'Orange', number: '698952526' }
-      ],
-      status: 'open'
-    }
-  ];
+  // Charger les activités (Supabase -> fallback localStorage/hardcoded)
+  useEffect(() => {
+    const loadActivities = async () => {
+      try {
+        const { data } = await supabase.from<any>('activities').select('*').order('order');
+        if (data && data.length > 0) {
+          setDynamicActivities(data);
+          setIsLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.warn('Supabase activities fetch failed, using local fallback', err);
+      }
 
-  const filteredActivities = activities.filter(activity => {
+      try {
+        // Charger depuis localStorage
+        const localActivities = localStorage.getItem('app_activities');
+        let enrichedActivities = [];
+
+        if (localActivities) {
+          enrichedActivities = JSON.parse(localActivities).map((activity: any, idx: number) => ({
+            id: activity.id || idx + 1,
+            title: activity.title,
+            category: activity.category || 'conferences',
+            date: activity.date || new Date().toLocaleDateString('en-US', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric'
+            }),
+            time: activity.time || '14h00',
+            location: activity.location || 'Lieu à définir',
+            participants: activity.participants || Math.floor(Math.random() * 60) + 5,
+            maxParticipants: activity.maxParticipants || 80,
+            description: activity.description,
+            image: [activityConference, activityMeditation, activityBibleStudy, activityCommunity, activityCreative][idx % 5],
+            price: activity.price || 0,
+            currency: 'FCFA',
+            isPaid: activity.price ? true : false,
+            paymentMethods: activity.paymentMethods || [],
+            status: activity.status || 'open'
+          }));
+        } else {
+          // Utiliser les activités par défaut si aucune en localStorage
+          enrichedActivities = [
+            {
+              id: 1,
+              title: 'La spiritualité au quotidien',
+              category: 'conferences',
+              date: '15 Dec 2024',
+              time: '14h00',
+              location: 'Salle Saint-Paul',
+              participants: 45,
+              maxParticipants: 80,
+              description: 'Intégrer la prière, la méditation et la bienveillance dans la vie de tous les jours, en s\'inspirant des Écritures.',
+              image: activityConference,
+              price: 0,
+              currency: 'FCFA',
+              isPaid: false,
+              paymentMethods: [],
+              status: 'open'
+            },
+            {
+              id: 2,
+              title: 'Méditation et Pleine Conscience',
+              category: 'bien-etre',
+              date: '20 Dec 2024',
+              time: '19h00',
+              location: 'Jardin de la Paix',
+              participants: 12,
+              maxParticipants: 20,
+              description: 'Pratiquer la pleine conscience et la respiration pour calmer l\'esprit et se rapprocher de Dieu.',
+              image: activityMeditation,
+              price: 0,
+              currency: 'FCFA',
+              isPaid: false,
+              paymentMethods: [],
+              status: 'open'
+            },
+            {
+              id: 3,
+              title: 'Étude du livre de Matthieu',
+              category: 'etudes',
+              date: '22 Dec 2024',
+              time: '16h30',
+              location: 'Bibliothèque paroissiale',
+              participants: 28,
+              maxParticipants: 30,
+              description: 'Exploration approfondie de l\'Évangile selon saint Matthieu dans le contexte de l\'année liturgique A.',
+              image: activityBibleStudy,
+              price: 0,
+              currency: 'FCFA',
+              isPaid: false,
+              paymentMethods: [],
+              status: 'almost-full'
+            },
+            {
+              id: 4,
+              title: 'Collecte pour les plus démunis',
+              category: 'projets',
+              date: '25 Dec 2024',
+              time: '10h00',
+              location: 'Centre-ville',
+              participants: 67,
+              maxParticipants: 100,
+              description: 'Action caritative de Noël pour soutenir les familles en difficulté de notre communauté.',
+              image: activityCommunity,
+              price: 0,
+              currency: 'FCFA',
+              isPaid: false,
+              paymentMethods: [],
+              status: 'open'
+            },
+            {
+              id: 5,
+              title: 'Groupe de discussion : Relations interpersonnelles',
+              category: 'discussions',
+              date: '28 Dec 2024',
+              time: '15h00',
+              location: 'Salon communautaire',
+              participants: 15,
+              maxParticipants: 25,
+              description: 'Explorer la communication, le pardon et l\'amour fraternel, guidés par les valeurs bibliques.',
+              image: activityConference,
+              price: 0,
+              currency: 'FCFA',
+              isPaid: false,
+              paymentMethods: [],
+              status: 'open'
+            },
+            {
+              id: 6,
+              title: 'Atelier de calligraphie sacrée',
+              category: 'creativite',
+              date: '02 Jan 2025',
+              time: '14h00',
+              location: 'Atelier d\'art',
+              participants: 8,
+              maxParticipants: 15,
+              description: 'Exprimer sa spiritualité à travers l\'art de la calligraphie en transcrivant des versets bibliques.',
+              image: activityCreative,
+              price: 5000,
+              currency: 'FCFA',
+              isPaid: true,
+              paymentMethods: [
+                { provider: 'MTN', number: '677536642' },
+                { provider: 'Orange', number: '698952526' }
+              ],
+              status: 'open'
+            }
+          ];
+        }
+
+        setDynamicActivities(enrichedActivities);
+      } catch (error) {
+        console.error('Erreur chargement activités:', error);
+        setDynamicActivities([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadActivities();
+  }, []);
+
+  const filteredActivities = dynamicActivities.filter(activity => {
     const matchesSearch = activity.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          activity.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || activity.category === selectedCategory;

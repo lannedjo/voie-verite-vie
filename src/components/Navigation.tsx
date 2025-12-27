@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -13,17 +13,33 @@ import {
   User,
   LogOut,
   Bot,
-  Heart
+  Heart,
+  Settings
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+// import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { useToast } from '@/components/ui/use-toast';
 import logo3v from '@/assets/logo-3v.png';
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const [adminCheck, setAdminCheck] = useState(0);
+  const { user, signOut, isAdmin } = useAuth();
+  //
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setAdminCheck(prev => prev + 1);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Affiche le lien admin si l'utilisateur connecté a le rôle admin
+  const isAdminAuthenticated = isAdmin;
 
   const handleSignOut = async () => {
     await signOut();
@@ -76,6 +92,18 @@ const Navigation = () => {
 
           {/* Actions Desktop */}
           <div className="hidden lg:flex items-center space-x-2">
+            {isAdminAuthenticated && (
+              <Button
+                onClick={() => navigate('/admin')}
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-purple-600 hover:text-purple-700"
+                title="Accès administrateur"
+              >
+                <Settings className="w-4 h-4" />
+                Admin
+              </Button>
+            )}
             {user ? (
               <>
                 <Button
@@ -145,6 +173,19 @@ const Navigation = () => {
                   })}
                 </div>
                 <div className="border-t border-border/50 pt-4 space-y-2">
+                  {isAdminAuthenticated && (
+                    <Button
+                      onClick={() => {
+                        navigate('/admin');
+                        setIsMenuOpen(false);
+                      }}
+                      variant="ghost"
+                      className="w-full justify-start text-purple-600 hover:text-purple-700"
+                    >
+                      <Settings className="w-4 h-4 mr-2" />
+                      Espace Admin
+                    </Button>
+                  )}
                   {user ? (
                     <>
                       <Button

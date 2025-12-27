@@ -4,60 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { useAdminAuth } from '@/hooks/useAdminAuth';
+// import { useAdminAuth } from '@/hooks/useAdminAuth';
 
-interface AdminLoginProps {
-  onLoginSuccess?: () => void;
-}
-
-export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const { login } = useAdminAuth();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-
-    try {
-      if (!email || !password) {
-        setError('Veuillez remplir tous les champs');
-        setIsLoading(false);
-        return;
-      }
-
-      if (!email.includes('@')) {
-        setError('Veuillez entrer une adresse email valide');
-        setIsLoading(false);
-        return;
-      }
-
-      const result = await login(email, password);
-
-      if (result.success) {
-        onLoginSuccess?.();
-      } else {
-        setError(result.error || 'Authentification échouée');
-      }
-    } catch (err) {
-      setError('Erreur lors de la connexion');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-2">
-          <CardTitle className="text-2xl text-center text-purple-600">
-            Espace Administrateur
-          </CardTitle>
-          <CardDescription className="text-center">
-            Connectez-vous pour accéder au tableau de bord
+// Ce composant n'est plus utilisé. Toute la logique admin passe par useAuth et le rôle admin Supabase.
+export const AdminLogin = () => null;
           </CardDescription>
         </CardHeader>
         <CardContent>
