@@ -10,54 +10,18 @@ import {
   Trash2,
   Edit2,
   Save,
-  X,
   Menu,
-          {/* Utilisateurs */}
-          {currentPage === 'users' && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-white">Utilisateurs</h2>
-              {users.length > 0 ? (
-                <div className="space-y-4">
-                  {users.map((u) => (
-                    <Card key={u.id} className="bg-gray-800 border-gray-700">
-                      <CardContent className="pt-6">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="text-white font-semibold">{u.full_name || u.email || u.id}</h3>
-                            <p className="text-gray-400 text-sm">{u.email}</p>
-                            <p className="text-gray-500 text-xs mt-1">Rôle: {u.role || 'membre'}</p>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="ghost" onClick={() => console.log('TODO: promote/demote', u)}>
-                              <Edit2 className="w-4 h-4 text-blue-400" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <Card className="bg-gray-800 border-gray-700">
-                  <CardContent className="pt-6">
-                    <p className="text-gray-400">Aucun utilisateur disponible ou accès refusé (RLS)</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-
-const menuItems = [
-  { id: 'dashboard', label: 'Tableau de bord', icon: Home },
-  { id: 'users', label: 'Utilisateurs', icon: Users },
-  { id: 'inscriptions', label: 'Inscriptions', icon: FileText },
-  { id: 'paiements', label: 'Paiements', icon: DollarSign },
-  { id: 'activites', label: 'Activités', icon: FileText },
-  { id: 'galerie', label: 'Galerie', icon: FileText },
-  { id: 'prieres', label: 'Prières', icon: MessageSquare },
-  { id: 'pages', label: 'Pages Contenu', icon: BookOpen },
-  { id: 'parametres', label: 'Paramètres', icon: Settings },
-];
+  LogOut,
+  Users,
+  DollarSign,
+  FileText,
+  MessageSquare,
+  BookOpen,
+  Settings,
+} from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Activity {
   id: string;
@@ -117,6 +81,18 @@ interface PaymentRecord {
   updated_at: string;
 }
 
+const menuItems = [
+  { id: 'dashboard', label: 'Tableau de bord', icon: Home },
+  { id: 'users', label: 'Utilisateurs', icon: Users },
+  { id: 'inscriptions', label: 'Inscriptions', icon: FileText },
+  { id: 'paiements', label: 'Paiements', icon: DollarSign },
+  { id: 'activites', label: 'Activités', icon: FileText },
+  { id: 'galerie', label: 'Galerie', icon: FileText },
+  { id: 'prieres', label: 'Prières', icon: MessageSquare },
+  { id: 'pages', label: 'Pages Contenu', icon: BookOpen },
+  { id: 'parametres', label: 'Paramètres', icon: Settings },
+];
+
 export const Admin: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -145,51 +121,49 @@ export const Admin: React.FC = () => {
       loadAllData();
     }
   }, [isAdmin]);
+
   const loadAllData = async () => {
     setIsLoadingData(true);
     try {
       try {
-        const [{ data: registrationsData }, { data: paymentsData }, { data: activitiesData }, { data: galleryData }, { data: prayerData }] = await Promise.all([
-          supabase.from<any>('activity_registrations').select('*'),
-          supabase.from<any>('activity_payments').select('*'),
-          supabase.from<any>('activities').select('*').order('order'),
-          supabase.from<any>('gallery_items').select('*').order('order'),
-          supabase.from<any>('prayer_requests').select('*'),
+        // Try to load from Supabase
+        // Note: activities, gallery_items, and activity_payments tables need to be created via migrations
+        const [{ data: registrationsData }, { data: prayerData }] = await Promise.all([
+          supabase.from('activity_registrations').select('*'),
+          supabase.from('prayer_requests').select('*'),
         ]);
 
-        if (registrationsData) setRegistrations(registrationsData as ActivityRegistration[]);
-        if (paymentsData) setPayments(paymentsData as PaymentRecord[]);
-        if (activitiesData) setActivities(activitiesData as Activity[]);
-        if (galleryData) setGallery(galleryData as GalleryItem[]);
-        if (prayerData) setPrayerRequests(prayerData as PrayerRequest[]);
+        if (registrationsData) setRegistrations(registrationsData as unknown as ActivityRegistration[]);
+        if (prayerData) setPrayerRequests(prayerData as unknown as PrayerRequest[]);
       } catch (err) {
         console.warn('Supabase fetch failed, falling back to localStorage', err);
+      }
 
-        const localPayments = localStorage.getItem('activity_payments');
-        if (localPayments) {
-          try {
-            setPayments(JSON.parse(localPayments));
-          } catch (e) {
-            console.warn('Erreur parsing localStorage payments');
-          }
+      // Load from localStorage as fallback
+      const localPayments = localStorage.getItem('activity_payments');
+      if (localPayments) {
+        try {
+          setPayments(JSON.parse(localPayments));
+        } catch (e) {
+          console.warn('Erreur parsing localStorage payments');
         }
+      }
 
-        const localActivities = localStorage.getItem('app_activities');
-        if (localActivities) {
-          try {
-            setActivities(JSON.parse(localActivities));
-          } catch (e) {
-            console.warn('Erreur parsing activités');
-          }
+      const localActivities = localStorage.getItem('app_activities');
+      if (localActivities) {
+        try {
+          setActivities(JSON.parse(localActivities));
+        } catch (e) {
+          console.warn('Erreur parsing activités');
         }
+      }
 
-        const localGallery = localStorage.getItem('app_gallery');
-        if (localGallery) {
-          try {
-            setGallery(JSON.parse(localGallery));
-          } catch (e) {
-            console.warn('Erreur parsing galerie');
-          }
+      const localGallery = localStorage.getItem('app_gallery');
+      if (localGallery) {
+        try {
+          setGallery(JSON.parse(localGallery));
+        } catch (e) {
+          console.warn('Erreur parsing galerie');
         }
       }
     } catch (error) {
@@ -215,44 +189,23 @@ export const Admin: React.FC = () => {
   const handleSave = async () => {
     try {
       if (editingType === 'activity') {
-        try {
-          if (editingItem?.id) {
-            await supabase.from<any>('activities').update(formData).eq('id', editingItem.id);
-          } else {
-            await supabase.from<any>('activities').insert([formData]);
-          }
-          toast({ title: 'Activité enregistrée (Supabase)' });
-        } catch (err) {
-          let dataArray = activities;
-          const index = dataArray.findIndex((item) => item.id === editingItem?.id);
-          if (index > -1) dataArray[index] = formData;
-          else dataArray = [...dataArray, { ...formData, id: Date.now().toString() }];
-          setActivities(dataArray);
-          localStorage.setItem('app_activities', JSON.stringify(dataArray));
-          toast({ title: 'Activité enregistrée (local)' });
-        }
+        let dataArray = activities;
+        const index = dataArray.findIndex((item) => item.id === editingItem?.id);
+        if (index > -1) dataArray[index] = formData;
+        else dataArray = [...dataArray, { ...formData, id: Date.now().toString() }];
+        setActivities(dataArray);
+        localStorage.setItem('app_activities', JSON.stringify(dataArray));
+        toast({ title: 'Activité enregistrée (local)' });
       } else if (editingType === 'gallery') {
-        try {
-          if (editingItem?.id) {
-            await supabase.from<any>('gallery_items').update(formData).eq('id', editingItem.id);
-          } else {
-            await supabase.from<any>('gallery_items').insert([formData]);
-          }
-          toast({ title: 'Image enregistrée (Supabase)' });
-        } catch (err) {
-          let dataArray = gallery;
-          const index = dataArray.findIndex((item) => item.id === editingItem?.id);
-          if (index > -1) dataArray[index] = formData;
-          else dataArray = [...dataArray, { ...formData, id: Date.now().toString() }];
-          setGallery(dataArray);
-          localStorage.setItem('app_gallery', JSON.stringify(dataArray));
-          toast({ title: 'Image enregistrée (local)' });
-        }
-      } else {
-        return;
+        let dataArray = gallery;
+        const index = dataArray.findIndex((item) => item.id === editingItem?.id);
+        if (index > -1) dataArray[index] = formData;
+        else dataArray = [...dataArray, { ...formData, id: Date.now().toString() }];
+        setGallery(dataArray);
+        localStorage.setItem('app_gallery', JSON.stringify(dataArray));
+        toast({ title: 'Image enregistrée (local)' });
       }
 
-      // refresh
       await loadAllData();
     } catch (error) {
       console.error('Erreur saving', error);
@@ -260,7 +213,7 @@ export const Admin: React.FC = () => {
     } finally {
       setEditingItem(null);
       setEditingType('');
-      setFormData({} as any);
+      setFormData({});
     }
   };
 
@@ -270,53 +223,31 @@ export const Admin: React.FC = () => {
     try {
       switch (type) {
         case 'activity': {
-          try {
-            await supabase.from<any>('activities').delete().eq('id', item.id);
-          } catch (err) {
-            const dataArray = activities.filter((a) => a.id !== item.id);
-            setActivities(dataArray);
-            localStorage.setItem('app_activities', JSON.stringify(dataArray));
-          }
+          const dataArray = activities.filter((a) => a.id !== item.id);
+          setActivities(dataArray);
+          localStorage.setItem('app_activities', JSON.stringify(dataArray));
           break;
         }
         case 'gallery': {
-          try {
-            await supabase.from<any>('gallery_items').delete().eq('id', item.id);
-          } catch (err) {
-            const dataArray = gallery.filter((g) => g.id !== item.id);
-            setGallery(dataArray);
-            localStorage.setItem('app_gallery', JSON.stringify(dataArray));
-          }
+          const dataArray = gallery.filter((g) => g.id !== item.id);
+          setGallery(dataArray);
+          localStorage.setItem('app_gallery', JSON.stringify(dataArray));
           break;
         }
         case 'prayer': {
-          await supabase.from<any>('prayer_requests').delete().eq('id', item.id);
+          await supabase.from('prayer_requests').delete().eq('id', item.id);
           setPrayerRequests((prev) => prev.filter((p) => p.id !== item.id));
           break;
         }
         case 'inscription': {
-          await supabase.from<any>('activity_registrations').delete().eq('id', item.id);
+          await supabase.from('activity_registrations').delete().eq('id', item.id);
           setRegistrations((prev) => prev.filter((r) => r.id !== item.id));
           break;
         }
         case 'payment': {
-          try {
-            await supabase.from<any>('activity_payments').delete().eq('id', item.id);
-            setPayments((prev) => prev.filter((p) => p.id !== item.id));
-          } catch (err) {
-            const dataArray = payments.filter((p) => p.id !== item.id);
-          }
-
-          // Try loading users/profiles (may require RLS/permissions)
-          try {
-            const { data: profiles } = await supabase.from<any>('profiles').select('*').order('created_at', { ascending: false });
-            if (profiles) setUsers(profiles);
-          } catch (err) {
-            console.warn('Impossible de charger les profils (RLS/permissions?)', err);
-          }
-            setPayments(dataArray);
-            localStorage.setItem('activity_payments', JSON.stringify(dataArray));
-          }
+          const dataArray = payments.filter((p) => p.id !== item.id);
+          setPayments(dataArray);
+          localStorage.setItem('activity_payments', JSON.stringify(dataArray));
           break;
         }
         default:
@@ -868,3 +799,5 @@ export const Admin: React.FC = () => {
     </div>
   );
 };
+
+export default Admin;
